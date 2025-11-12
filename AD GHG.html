@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO 14064-1:2018 GHG Calculator (v3)</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Custom Tooltip */
+        [data-tooltip] {
+            position: relative;
+            cursor: help;
+        }
+        [data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            white-space: pre-wrap; /* Use pre-wrap for multiline tooltips */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            width: 300px; /* Set a fixed width */
+            z-index: 10;
+        }
+        [data-tooltip]:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Active/Inactive Tab Styles */
+        [role="tab"][aria-selected="true"] {
+            background-color: white;
+            border-bottom: 2px solid #2563eb; /* blue-600 */
+            color: #1e40af; /* blue-800 */
+            font-weight: 600;
+        }
+        [role="tab"] {
+            background-color: #f3f4f6; /* gray-100 */
+            border-bottom: 2px solid transparent;
+        }
+
+        /* Simple grid for inputs */
+        .input-grid {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1fr;
+            gap: 0.75rem 1rem;
+            align-items: center;
+        }
+        .input-grid label {
+            font-medium: 500;
+            font-size: 0.875rem;
+        }
+        .input-grid span {
+            font-size: 0.875rem;
+            color: #4b5563; /* gray-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+    <div class="container max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-blue-800">Organizational GHG Calculator</h1>
+            <p class="text-lg text-gray-600 mt-1">Based on ISO 14064-1:2018 Quantification Guidelines</p>
+            <p class="text-sm text-gray-700 mt-4">Developed by: Dr. Mohamed Tash</p>
+            <p class="text-sm text-gray-700 mt-1">LinkedIn: <a href="https://www.linkedin.com/in/drtash" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">www.linkedin.com/in/drtash</a></p>
+        </header>
+
+        <main>
+            <!-- Tab Navigation -->
+            <div class="mb-6 border-b border-gray-300">
+                <div class="-mb-px flex flex-wrap" role="tablist" aria-orientation="horizontal">
+                    <button id="tab-cat1" role="tab" aria-selected="true" aria-controls="panel-cat1" class="tab-btn text-sm sm:text-base p-3 sm:p-4 rounded-t-lg focus:outline-none">
+                        Cat 1: Direct
+                    </button>
+                    <button id="tab-cat2" role="tab" aria-selected="false" aria-controls="panel-cat2" class="tab-btn text-sm sm:text-base p-3 sm:p-4 rounded-t-lg focus:outline-none">
+                        Cat 2: Imported Energy
+                    </button>
+                    <button id="tab-cat3" role="tab" aria-selected="false" aria-controls="panel-cat3" class="tab-btn text-sm sm:text-base p-3 sm:p-4 rounded-t-lg focus:outline-none">
+                        Cat 3: Transport
+                    </button>
+                    <button id="tab-cat4" role="tab" aria-selected="false" aria-controls="panel-cat4" class="tab-btn text-sm sm:text-base p-3 sm:p-4 rounded-t-lg focus:outline-none">
+                        Cat 4: Products Used
+                    </button>
+                    <button id="tab-cat5" role="tab" aria-selected="false" aria-controls="panel-cat5" class="tab-btn text-sm sm:text-base p-3 sm:p-4 rounded-t-lg focus:outline-none">
+                        Cat 5: Products Sold
+                    </button>
+                    <button id="tab-cat6" role="tab" aria-selected="false" aria-controls="panel-cat6" class="tab-btn text-sm sm:text-base p-3 sm:p-4 rounded-t-lg focus:outline-none">
+                        Cat 6: Other
+                    </button>
+                    <button id="tab-results" role="tab" aria-selected="false" aria-controls="panel-results" class="tab-btn text-sm sm:text-base p-3 sm:p-4 rounded-t-lg focus:outline-none font-medium text-green-700">
+                        Results & Summary
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Panels -->
+            <div class="bg-white p-4 sm:p-8 rounded-lg shadow-lg">
+                
+                <!-- Category 1: Direct GHG Emissions & Removals -->
+                <div id="panel-cat1" role="tabpanel" aria-labelledby="tab-cat1">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Category 1: Direct GHG Emissions & Removals</h2>
+                    <div class="space-y-6">
+                        
+                        <!-- 1.1 Stationary Combustion -->
+                        <fieldset class="border rounded-lg p-4">
+                            <legend class="text-lg font-medium px-2">1.1 Stationary Combustion
+                                <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: A.2.3.1
+Quantification of GHG emissions from stationary combustion of fuels.">?</span>
+                            </legend>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-2 items-center">
+                                <label for="cat1_stat_ng" class="font-medium text-sm">Natural Gas:</label>
+                                <input type="number" id="cat1_stat_ng" placeholder="0" class="sm:col-span-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span class="text-sm text-gray-600">GJ</span>
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="cat1_stat_ng_bio" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                    <label for="cat1_stat_ng_bio" class="text-sm">Biogenic</label>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4 items-center">
+                                <label for="cat1_stat_diesel" class="font-medium text-sm">Diesel:</label>
+                                <input type="number" id="cat1_stat_diesel" placeholder="0" class="sm:col-span-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span class="text-sm text-gray-600">Litres</span>
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="cat1_stat_diesel_bio" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                    <label for="cat1_stat_diesel_bio" class="text-sm">Biogenic</label>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <!-- 1.2 Mobile Combustion -->
+                        <fieldset class="border rounded-lg p-4">
+                            <legend class="text-lg font-medium px-2">1.2 Mobile Combustion
+                                <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: A.2.3.2
+Quantification of GHG emissions from mobile combustion of fuels in organization-controlled vehicles.">?</span>
+                            </legend>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-2 items-center">
+                                <label for="cat1_mob_gasoline" class="font-medium text-sm">Gasoline (fleet):</label>
+                                <input type="number" id="cat1_mob_gasoline" placeholder="0" class="sm:col-span-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span class="text-sm text-gray-600">Litres</span>
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="cat1_mob_gasoline_bio" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                    <label for="cat1_mob_gasoline_bio" class="text-sm">Biogenic</label>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <!-- 1.3 Industrial Processes -->
+                        <fieldset class="border rounded-lg p-4">
+                            <legend class="text-lg font-medium px-2">1.3 Industrial Processes
+                                <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: A.2.3.3
+Non-combustion emissions from chemical or physical processes, e.g., mineral calcination, metal production.">?</span>
+                            </legend>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-2 items-center">
+                                <label for="cat1_proc_limestone" class="font-medium text-sm">Limestone Calcination:</label>
+                                <input type="number" id="cat1_proc_limestone" placeholder="0" class="sm:col-span-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span class="text-sm text-gray-600">tonnes</span>
+                            </div>
+                        </fieldset>
+
+                        <!-- 1.4 Fugitive Emissions (F-Gases) -->
+                        <fieldset class="border rounded-lg p-4">
+                            <legend class="text-lg font-medium px-2">1.4 Fugitive Emissions (F-Gases)
+                                <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: A.2.3.4
+Intentional/unintentional releases of HFCs, PFCs, SF6, NF3. Input the mass of gas leaked.">?</span>
+                            </legend>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-2 items-center">
+                                <label for="cat1_fug_hfc134a" class="font-medium text-sm">HFC-134a (leakage):</label>
+                                <input type="number" id="cat1_fug_hfc134a" placeholder="0" class="sm:col-span-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span class="text-sm text-gray-600">kg</span>
+                            </div>
+                             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4 items-center">
+                                <label for="cat1_fug_sf6" class="font-medium text-sm">SF6 (leakage):</label>
+                                <input type="number" id="cat1_fug_sf6" placeholder="0" class="sm:col-span-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span class="text-sm text-gray-600">kg</span>
+                            </div>
+                        </fieldset>
+
+                        <!-- 1.5 Fugitive Emissions (CH4) -->
+                        <fieldset class="border rounded-lg p-4">
+                            <legend class="text-lg font-medium px-2">1.5 Fugitive Emissions (CH4)
+                                <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: A.2.3.4
+Fugitive releases of Methane (CH4) from e.g., natural gas systems, coal mining, or wastewater.">?</span>
+                            </legend>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-2 items-center">
+                                <label for="cat1_fug_ch4" class="font-medium text-sm">CH4 (e.g., pipeline leak):</label>
+                                <input type="number" id="cat1_fug_ch4" placeholder="0" class="sm:col-span-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span class="text-sm text-gray-600">kg</span>
+                            </div>
+                        </fieldset>
+
+                        <!-- 1.6 Removals -->
+                        <fieldset class="border rounded-lg p-4">
+                            <legend class="text-lg font-medium px-2">1.6 Direct GHG Removals (LULUCF)
+                                <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: 7.2.2
+GHG removals, e.g., from organization-owned forestry sinks (LULUCF) or direct air capture. Input as a positive number.">?</span>
+                            </legend>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-2 items-center">
+                                <label for="cat1_removals" class="font-medium text-sm">CO2 Removals:</label>
+                                <input type="number" id="cat1_removals" placeholder="0" class="sm:col-span-1 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span class="text-sm text-gray-600">tonnes CO2</span>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Category 2: Indirect GHG Emissions from Imported Energy -->
+                <div id="panel-cat2" role="tabpanel" aria-labelledby="tab-cat2" class="hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Category 2: Indirect GHG Emissions from Imported Energy
+                         <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: 7.3.2
+Emissions from generation of imported electricity, heat, steam, cooling, etc. consumed by the organization.">?</span>
+                    </h2>
+                    <div class="space-y-6">
+                        <fieldset class="border rounded-lg p-4">
+                            <legend class="text-lg font-medium px-2">2.1 Imported Electricity</legend>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 mt-2 items-start">
+                                <!-- Input side -->
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                                        <label for="cat2_elec_loc" class="font-medium text-sm">Grid Electricity:</label>
+                                        <input type="number" id="cat2_elec_loc" placeholder="0" class="sm:col-span-2 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                        <span class="text-sm text-gray-600 sm:col-start-2 sm:col-span-2">kWh</span>
+                                    </div>
+                                </div>
+                                <!-- EF Override Side -->
+                                <div class="space-y-4 bg-gray-50 p-4 rounded-lg border">
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                                        <label for="cat2_elec_ef" class="font-medium text-sm">Grid EF Override:
+                                            <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: 7.3.2.3
+Manually enter a specific emission factor (e.g., from your provider or a market-based instrument) instead of the default.">?</span>
+                                        </label>
+                                        <input type="number" id="cat2_elec_ef" class="sm:col-span-2 w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                        <span class="text-sm text-gray-600 sm:col-start-2 sm:col-span-2">kg CO2e / kWh</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <fieldset class="border rounded-lg p-4">
+                            <legend class="text-lg font-medium px-2">2.2 Other Imported Energy</legend>
+                            <div class="input-grid mt-2">
+                                <label for="cat2_steam" class="font-medium text-sm">Purchased Steam:</label>
+                                <input type="number" id="cat2_steam" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span>GJ</span>
+                                
+                                <label for="cat2_heat" class="font-medium text-sm">Purchased Heating:</label>
+                                <input type="number" id="cat2_heat" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span>GJ</span>
+
+                                <label for="cat2_cool" class="font-medium text-sm">Purchased Cooling:</label>
+                                <input type="number" id="cat2_cool" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span>GJ</span>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Category 3: Indirect GHG Emissions from Transportation -->
+                <div id="panel-cat3" role="tabpanel" aria-labelledby="tab-cat3" class="hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Category 3: Indirect GHG Emissions from Transportation
+                        <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: 7.3.3
+Transport not owned/controlled by the organization, e.g., upstream/downstream freight, business travel, commuting.">?</span>
+                    </h2>
+                    <div class="space-y-6">
+                        <fieldset class="border rounded-lg p-4">
+                            <legend class="text-lg font-medium px-2">3.1 Transport Activities</legend>
+                            <div class="input-grid mt-2">
+                                <label for="cat3_freight">Downstream Freight:</label>
+                                <input type="number" id="cat3_freight" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span>tonne-km</span>
+
+                                <label for="cat3_commute">Employee Commuting:</label>
+                                <input type="number" id="cat3_commute" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span>person-km</span>
+
+                                <label for="cat3_biz_air">Business Travel (Air):</label>
+                                <input type="number" id="cat3_biz_air" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span>person-km</span>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Category 4: Indirect GHG Emissions from Products Used -->
+                <div id="panel-cat4" role="tabpanel" aria-labelledby="tab-cat4" class="hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Category 4: Indirect GHG Emissions from Products Used
+                        <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: 7.3.4
+Upstream (cradle-to-gate) emissions of purchased goods, capital goods, services, etc.">?</span>
+                    </h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <!-- Column 1 -->
+                        <div class="space-y-6">
+                            <fieldset class="border rounded-lg p-4">
+                                <legend class="text-lg font-medium px-2">4.1 Raw Materials</legend>
+                                <div class="input-grid mt-2">
+                                    <label for="cat4_rm_steel">Steel:</label>
+                                    <input type="number" id="cat4_rm_steel" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>tonnes</span>
+                                    
+                                    <label for="cat4_rm_aluminum">Aluminum:</label>
+                                    <input type="number" id="cat4_rm_aluminum" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>tonnes</span>
+
+                                    <label for="cat4_rm_cement">Cement:</label>
+                                    <input type="number" id="cat4_rm_cement" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>tonnes</span>
+                                    
+                                    <label for="cat4_rm_plastics">Plastics (HDPE, etc.):</label>
+                                    <input type="number" id="cat4_rm_plastics" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>tonnes</span>
+                                    
+                                    <label for="cat4_rm_chemicals">Chemicals (Solvents):</label>
+                                    <input type="number" id="cat4_rm_chemicals" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>tonnes</span>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="border rounded-lg p-4">
+                                <legend class="text-lg font-medium px-2">4.2 Capital Goods (Spend-Based)</legend>
+                                <div class="input-grid mt-2">
+                                    <label for="cat4_cg_machinery">Machinery & Equipment:</label>
+                                    <input type="number" id="cat4_cg_machinery" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>USD ($)</span>
+                                    
+                                    <label for="cat4_cg_it">IT Equipment:</label>
+                                    <input type="number" id="cat4_cg_it" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>USD ($)</span>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="border rounded-lg p-4">
+                                <legend class="text-lg font-medium px-2">4.3 Fuels (Cradle-to-Gate)</legend>
+                                <div class="input-grid mt-2">
+                                    <label for="cat4_fuel_diesel">Upstream (Diesel):</label>
+                                    <input type="number" id="cat4_fuel_diesel" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>Litres</span>
+                                </div>
+                            </fieldset>
+                        </div>
+
+                        <!-- Column 2 -->
+                        <div class="space-y-6">
+                            <fieldset class="border rounded-lg p-4">
+                                <legend class="text-lg font-medium px-2">4.4 Packaging & Ancillary</legend>
+                                <div class="input-grid mt-2">
+                                    <label for="cat4_pkg_cardboard">Cardboard/Paper:</label>
+                                    <input type="number" id="cat4_pkg_cardboard" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>tonnes</span>
+                                    
+                                    <label for="cat4_pkg_drums">Plastic Drums:</label>
+                                    <input type="number" id="cat4_pkg_drums" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>tonnes</span>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="border rounded-lg p-4">
+                                <legend class="text-lg font-medium px-2">4.5 Purchased Services</legend>
+                                <div class="input-grid mt-2">
+                                    <label for="cat4_svc_waste">Waste Management:</label>
+                                    <input type="number" id="cat4_svc_waste" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>tonnes</span>
+                                    
+                                    <label for="cat4_svc_water">Wastewater Treatment:</label>
+                                    <input type="number" id="cat4_svc_water" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>m3</span>
+
+                                    <label for="cat4_svc_logistics">3rd Party Logistics:</label>
+                                    <input type="number" id="cat4_svc_logistics" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>USD ($)</span>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category 5: Indirect GHG Emissions from Products Sold -->
+                <div id="panel-cat5" role="tabpanel" aria-labelledby="tab-cat5" class="hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Category 5: Indirect GHG Emissions from Use of Products Sold
+                        <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: 7.3.5
+Emissions from the use, end-of-life treatment, etc. of the organization's sold products. EFs here represent plausible downstream use (e.g., combustion).">?</span>
+                    </h2>
+                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <!-- Column 1 -->
+                        <div class="space-y-6">
+                            <fieldset class="border rounded-lg p-4">
+                                <legend class="text-lg font-medium px-2">5.1 Refined Fuels Sold</legend>
+                                <div class="input-grid mt-2">
+                                    <label for="cat5_fuel_gasoline">Gasoline Sold:</label>
+                                    <input type="number" id="cat5_fuel_gasoline" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>Litres</span>
+
+                                    <label for="cat5_fuel_diesel">Diesel Sold:</label>
+                                    <input type="number" id="cat5_fuel_diesel" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>Litres</span>
+
+                                    <label for="cat5_fuel_jet">Jet Fuel Sold:</label>
+                                    <input type="number" id="cat5_fuel_jet" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>Litres</span>
+                                </div>
+                            </fieldset>
+                            
+                            <fieldset class="border rounded-lg p-4">
+                                <legend class="text-lg font-medium px-2">5.2 Raw Feedstocks Sold</legend>
+                                <div class="input-grid mt-2">
+                                    <label for="cat5_feed_crude">Crude Oil Sold:</label>
+                                    <input type="number" id="cat5_feed_crude" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>barrels</span>
+
+                                    <label for="cat5_feed_ng">Natural Gas Sold:</label>
+                                    <input type="number" id="cat5_feed_ng" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>GJ</span>
+                                </div>
+                            </fieldset>
+                        </div>
+
+                        <!-- Column 2 -->
+                        <div class="space-y-6">
+                            <fieldset class="border rounded-lg p-4">
+                                <legend class="text-lg font-medium px-2">5.3 Petrochemicals & Other</legend>
+                                <div class="input-grid mt-2">
+                                    <label for="cat5_chem_methanol">Methanol Sold:</label>
+                                    <input type="number" id="cat5_chem_methanol" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>tonnes</span>
+
+                                    <label for="cat5_chem_ammonia">Ammonia Sold:</label>
+                                    <input type="number" id="cat5_chem_ammonia" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>tonnes</span>
+                                    
+                                    <label for="cat5_other_lube">Lubricants Sold:</label>
+                                    <input type="number" id="cat5_other_lube" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <span>Litres</span>
+                                </div>
+                            </fieldset>
+                            
+                            <fieldset class="border rounded-lg p-4">
+                                <legend class="text-lg font-medium px-2">5.4 Plausible Use Scenario</legend>
+                                <textarea id="cat5_scenario_desc" rows="3" class="w-full mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Briefly document the assumption for downstream use (e.g., 'All fuels are assumed to be fully combusted. All crude is refined and combusted.')"></textarea>
+                            </fieldset>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category 6: Indirect GHG Emissions from Other Sources -->
+                <div id="panel-cat6" role="tabpanel" aria-labelledby="tab-cat6" class="hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Category 6: Indirect GHG Emissions from Other Sources
+                        <span class="ml-1 text-blue-600 text-xs font-mono" data-tooltip="ISO 14064-1: 7.3.6
+Other indirect emissions not covered in Cat 2-5, e.g., investments.">?</span>
+                    </h2>
+                    <div class="space-y-6">
+                        <fieldset class="border rounded-lg p-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2 items-center">
+                                <label for="cat6_other" class="font-medium text-sm">Other Emissions:</label>
+                                <input type="number" id="cat6_other" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <span class="text-sm text-gray-600">tonnes CO2e</span>
+                            </div>
+                            <div class="mt-4">
+                                <label for="cat6_desc" class="font-medium text-sm">Description:</label>
+                                <textarea id="cat6_desc" rows="3" class="w-full mt-1 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Describe the source of 'Other' emissions..."></textarea>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div id="panel-results" role="tabpanel" aria-labelledby="tab-results" class="hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Results & Summary</h2>
+                    <p class="text-gray-600 mb-6">Click "Calculate Emissions" to generate your report. The report will be displayed here.</p>
+                    
+                    <!-- Results content will be injected here -->
+                    <div id="results-content" class="space-y-8">
+                        <!-- Placeholder -->
+                        <div class="text-center text-gray-500">No results calculated yet.</div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-8 pt-6 border-t border-gray-200 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                    <button id="calculate-btn" class="w-full sm:w-auto bg-blue-600 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 ease-in-out">
+                        Calculate Emissions
+                    </button>
+                    <button id="export-btn" class="w-full sm:w-auto bg-green-600 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-150 ease-in-out" disabled>
+                        Export to CSV
+                    </button>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        // --- DATA & CONSTANTS ---
+
+        // Global Warming Potentials (GWP) from IPCC AR6 (100-year)
+        const GWP_AR6 = {
+            co2: 1,
+            ch4: 27.2,  // Fossil CH4
+            ch4_bio: 27.2, // Biogenic CH4 GWP
+            n2o: 273,
+            hfc134a: 1530,
+            sf6: 25200,
+        };
+
+        // Simplified Emission Factors (EFs) - (tonnes GHG / unit)
+        const EFs = {
+            // Category 1
+            stationary: {
+                'Natural Gas (GJ)': { co2: 0.0561, ch4: 0.000001, n2o: 0.0000001 },
+                'Diesel (Litres)': { co2: 0.00268, ch4: 0.00000005, n2o: 0.00000015 }
+            },
+            mobile: {
+                'Gasoline (Litres)': { co2: 0.00235, ch4: 0.00000002, n2o: 0.00000002 }
+            },
+            process: {
+                'Limestone (tonnes)': { co2: 0.44 }
+            },
+            fugitive: {
+                'HFC-134a (kg)': { co2e: GWP_AR6.hfc134a / 1000 }, // t CO2e / kg
+                'SF6 (kg)': { co2e: GWP_AR6.sf6 / 1000 }, // t CO2e / kg
+                'CH4 (kg)': { ch4: 0.001 } // t CH4 / kg CH4
+            },
+            // Category 2 (All factors as t CO2e / unit)
+            energy: {
+                'Grid Electricity (kWh)': { co2e: 0.00045 }, // Default: 450 g/kWh = 0.00045 t/kWh
+                'Purchased Steam (GJ)': { co2e: 0.07 },
+                'Purchased Heating (GJ)': { co2e: 0.06 },
+                'Purchased Cooling (GJ)': { co2e: 0.03 } // EF for cooling energy
+            },
+            // Category 3 (All factors as t CO2e / unit)
+            transport: {
+                'Freight (t-km)': { co2e: 0.000085 },
+                'Commuting (p-km)': { co2e: 0.00012 },
+                'Air Travel (p-km)': { co2e: 0.00015 }
+            },
+            // Category 4 (Cradle-to-Gate EFs, t CO2e / unit)
+            productsUsed: {
+                // Raw Materials
+                'Steel (tonnes)': { co2e: 1.85 },
+                'Aluminum (tonnes)': { co2e: 9.2 },
+                'Cement (tonnes)': { co2e: 0.81 },
+                'Plastics (tonnes)': { co2e: 2.5 },
+                'Chemicals (tonnes)': { co2e: 3.0 },
+                // Capital Goods (Spend-based)
+                'Machinery (USD)': { co2e: 0.0003 },
+                'IT (USD)': { co2e: 0.0001 },
+                // Fuels (Upstream production, not combustion)
+                'Diesel (Upstream) (Litres)': { co2e: 0.0005 },
+                // Packaging
+                'Cardboard (tonnes)': { co2e: 0.8 },
+                'Plastic Drums (tonnes)': { co2e: 2.7 },
+                // Services
+                'Waste (tonnes)': { co2e: 0.5 },
+                'Wastewater (m3)': { co2e: 0.0007 },
+                'Logistics (USD)': { co2e: 0.0004 }
+            },
+            // Category 5 (Downstream Use EFs, t CO2e / unit)
+            productsSold: {
+                // Refined Fuels (Combustion)
+                'Gasoline Sold (Litres)': { co2e: 0.00235 },
+                'Diesel Sold (Litres)': { co2e: 0.00268 },
+                'Jet Fuel Sold (Litres)': { co2e: 0.00255 },
+                // Feedstocks (Combustion)
+                'Crude Oil (barrel)': { co2e: 0.43 },
+                'Natural Gas (GJ)': { co2e: 0.0561 },
+                // Petrochemicals & Other (Use-phase)
+                'Methanol (tonnes)': { co2e: 1.37 }, // e.g., if combusted
+                'Ammonia (tonnes)': { co2e: 0.5 }, // Placeholder for downstream use
+                'Lubricants (Litres)': { co2e: 0.002 } // Assumes disposal/combustion
+            },
+            // Category 6
+            other: {
+                'Other (tonnes CO2e)': { co2e: 1.0 } // Direct entry
+            }
+        };
+
+        // --- STATE & DOM ELEMENTS ---
+
+        let finalResults = {};
+        
+        // --- UTILITY FUNCTIONS ---
+        
+        const getVal = (id) => parseFloat(document.getElementById(id).value) || 0;
+        const getCheck = (id) => document.getElementById(id).checked;
+        const setHtml = (id, html) => document.getElementById(id).innerHTML = html;
+        
+        const fNum = (num, dp = 2) => {
+            if (num === 0) return '0';
+            if (Math.abs(num) < 0.01 && num !== 0) return num.toExponential(2);
+            return num.toFixed(dp).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        };
+
+        // --- TABBING LOGIC ---
+
+        const allTabs = document.querySelectorAll('[role="tab"]');
+        const allPanels = document.querySelectorAll('[role="tabpanel"]');
+
+        const switchTab = (targetTab) => {
+            allTabs.forEach(tab => {
+                tab.setAttribute('aria-selected', tab === targetTab);
+            });
+            allPanels.forEach(panel => {
+                panel.classList.toggle('hidden', panel.getAttribute('aria-labelledby') !== targetTab.id);
+            });
+        };
+
+        allTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => switchTab(e.currentTarget));
+        });
+
+        // --- CORE CALCULATION LOGIC ---
+
+        const calculateEmissions = () => {
+            let results = {
+                cat1: {
+                    non_biogenic: { co2: 0, ch4: 0, n2o: 0, hfcs: 0, pfcs: 0, sf6: 0, nf3: 0, other_co2e: 0 },
+                    biogenic: { co2: 0, ch4: 0, n2o: 0 },
+                    removals: { co2: 0 }
+                },
+                cat2: { co2e: 0 },
+                cat3: { co2e: 0 },
+                cat4: { co2e: 0 },
+                cat5: { co2e: 0 },
+                cat6: { co2e: 0 }
+            };
+
+            // --- Category 1: Direct ---
+            const stat_ng_val = getVal('cat1_stat_ng');
+            const stat_ng_bio = getCheck('cat1_stat_ng_bio');
+            const ef_stat_ng = EFs.stationary['Natural Gas (GJ)'];
+            if (stat_ng_bio) {
+                results.cat1.biogenic.co2 += stat_ng_val * ef_stat_ng.co2;
+                results.cat1.biogenic.ch4 += stat_ng_val * ef_stat_ng.ch4;
+                results.cat1.biogenic.n2o += stat_ng_val * ef_stat_ng.n2o;
+            } else {
+                results.cat1.non_biogenic.co2 += stat_ng_val * ef_stat_ng.co2;
+                results.cat1.non_biogenic.ch4 += stat_ng_val * ef_stat_ng.ch4;
+                results.cat1.non_biogenic.n2o += stat_ng_val * ef_stat_ng.n2o;
+            }
+
+            const stat_diesel_val = getVal('cat1_stat_diesel');
+            const stat_diesel_bio = getCheck('cat1_stat_diesel_bio');
+            const ef_stat_diesel = EFs.stationary['Diesel (Litres)'];
+            if (stat_diesel_bio) {
+                results.cat1.biogenic.co2 += stat_diesel_val * ef_stat_diesel.co2;
+                results.cat1.biogenic.ch4 += stat_diesel_val * ef_stat_diesel.ch4;
+                results.cat1.biogenic.n2o += stat_diesel_val * ef_stat_diesel.n2o;
+            } else {
+                results.cat1.non_biogenic.co2 += stat_diesel_val * ef_stat_diesel.co2;
+                results.cat1.non_biogenic.ch4 += stat_diesel_val * ef_stat_diesel.ch4;
+                results.cat1.non_biogenic.n2o += stat_diesel_val * ef_stat_diesel.n2o;
+            }
+
+            const mob_gasoline_val = getVal('cat1_mob_gasoline');
+            const mob_gasoline_bio = getCheck('cat1_mob_gasoline_bio');
+            const ef_mob_gasoline = EFs.mobile['Gasoline (Litres)'];
+            if (mob_gasoline_bio) {
+                results.cat1.biogenic.co2 += mob_gasoline_val * ef_mob_gasoline.co2;
+                results.cat1.biogenic.ch4 += mob_gasoline_val * ef_mob_gasoline.ch4;
+                results.cat1.biogenic.n2o += mob_gasoline_val * ef_mob_gasoline.n2o;
+            } else {
+                results.cat1.non_biogenic.co2 += mob_gasoline_val * ef_mob_gasoline.co2;
+                results.cat1.non_biogenic.ch4 += mob_gasoline_val * ef_mob_gasoline.ch4;
+                results.cat1.non_biogenic.n2o += mob_gasoline_val * ef_mob_gasoline.n2o;
+            }
+            
+            results.cat1.non_biogenic.co2 += getVal('cat1_proc_limestone') * EFs.process['Limestone (tonnes)'].co2;
+            results.cat1.non_biogenic.hfcs += getVal('cat1_fug_hfc134a') * EFs.fugitive['HFC-134a (kg)'].co2e;
+            results.cat1.non_biogenic.sf6 += getVal('cat1_fug_sf6') * EFs.fugitive['SF6 (kg)'].co2e;
+            results.cat1.non_biogenic.ch4 += getVal('cat1_fug_ch4') * EFs.fugitive['CH4 (kg)'].ch4;
+            results.cat1.removals.co2 = getVal('cat1_removals');
+
+            // --- Category 2: Imported Energy ---
+            const user_elec_ef_kwh = getVal('cat2_elec_ef');
+            const elec_ef_tonnes = user_elec_ef_kwh / 1000; // Convert kg/kWh to t/kWh
+            results.cat2.co2e += getVal('cat2_elec_loc') * elec_ef_tonnes;
+            results.cat2.co2e += getVal('cat2_steam') * EFs.energy['Purchased Steam (GJ)'].co2e;
+            results.cat2.co2e += getVal('cat2_heat') * EFs.energy['Purchased Heating (GJ)'].co2e;
+            results.cat2.co2e += getVal('cat2_cool') * EFs.energy['Purchased Cooling (GJ)'].co2e;
+
+            // --- Category 3: Transport ---
+            results.cat3.co2e += getVal('cat3_freight') * EFs.transport['Freight (t-km)'].co2e;
+            results.cat3.co2e += getVal('cat3_commute') * EFs.transport['Commuting (p-km)'].co2e;
+            results.cat3.co2e += getVal('cat3_biz_air') * EFs.transport['Air Travel (p-km)'].co2e;
+
+            // --- Category 4: Products Used ---
+            const ef_p_used = EFs.productsUsed;
+            results.cat4.co2e += getVal('cat4_rm_steel') * ef_p_used['Steel (tonnes)'].co2e;
+            results.cat4.co2e += getVal('cat4_rm_aluminum') * ef_p_used['Aluminum (tonnes)'].co2e;
+            results.cat4.co2e += getVal('cat4_rm_cement') * ef_p_used['Cement (tonnes)'].co2e;
+            results.cat4.co2e += getVal('cat4_rm_plastics') * ef_p_used['Plastics (tonnes)'].co2e;
+            results.cat4.co2e += getVal('cat4_rm_chemicals') * ef_p_used['Chemicals (tonnes)'].co2e;
+            results.cat4.co2e += getVal('cat4_cg_machinery') * ef_p_used['Machinery (USD)'].co2e;
+            results.cat4.co2e += getVal('cat4_cg_it') * ef_p_used['IT (USD)'].co2e;
+            results.cat4.co2e += getVal('cat4_fuel_diesel') * ef_p_used['Diesel (Upstream) (Litres)'].co2e;
+            results.cat4.co2e += getVal('cat4_pkg_cardboard') * ef_p_used['Cardboard (tonnes)'].co2e;
+            results.cat4.co2e += getVal('cat4_pkg_drums') * ef_p_used['Plastic Drums (tonnes)'].co2e;
+            results.cat4.co2e += getVal('cat4_svc_waste') * ef_p_used['Waste (tonnes)'].co2e;
+            results.cat4.co2e += getVal('cat4_svc_water') * ef_p_used['Wastewater (m3)'].co2e;
+            results.cat4.co2e += getVal('cat4_svc_logistics') * ef_p_used['Logistics (USD)'].co2e;
+
+            // --- Category 5: Products Sold ---
+            const ef_p_sold = EFs.productsSold;
+            results.cat5.co2e += getVal('cat5_fuel_gasoline') * ef_p_sold['Gasoline Sold (Litres)'].co2e;
+            results.cat5.co2e += getVal('cat5_fuel_diesel') * ef_p_sold['Diesel Sold (Litres)'].co2e;
+            results.cat5.co2e += getVal('cat5_fuel_jet') * ef_p_sold['Jet Fuel Sold (Litres)'].co2e;
+            results.cat5.co2e += getVal('cat5_feed_crude') * ef_p_sold['Crude Oil (barrel)'].co2e;
+            results.cat5.co2e += getVal('cat5_feed_ng') * ef_p_sold['Natural Gas (GJ)'].co2e;
+            results.cat5.co2e += getVal('cat5_chem_methanol') * ef_p_sold['Methanol (tonnes)'].co2e;
+            results.cat5.co2e += getVal('cat5_chem_ammonia') * ef_p_sold['Ammonia (tonnes)'].co2e;
+            results.cat5.co2e += getVal('cat5_other_lube') * ef_p_sold['Lubricants (Litres)'].co2e;
+
+            // --- Category 6: Other ---
+            results.cat6.co2e += getVal('cat6_other') * EFs.other['Other (tonnes CO2e)'].co2e;
+
+            // --- Convert Cat 1 to CO2e ---
+            const c1_nb = results.cat1.non_biogenic;
+            const c1_b = results.cat1.biogenic;
+
+            const co2e_cat1_non_bio = (c1_nb.co2 * GWP_AR6.co2) +
+                                    (c1_nb.ch4 * GWP_AR6.ch4) +
+                                    (c1_nb.n2o * GWP_AR6.n2o) +
+                                    c1_nb.hfcs + c1_nb.pfcs + c1_nb.sf6 + c1_nb.nf3 + c1_nb.other_co2e;
+            
+            const co2e_cat1_bio = (c1_b.ch4 * GWP_AR6.ch4_bio) +
+                                  (c1_b.n2o * GWP_AR6.n2o);
+            
+            const total_cat1_co2e = co2e_cat1_non_bio + co2e_cat1_bio;
+            
+            // --- Compile Final Results ---
+            const total_gross = total_cat1_co2e + results.cat2.co2e + results.cat3.co2e + results.cat4.co2e + results.cat5.co2e + results.cat6.co2e;
+            const total_net = total_gross - results.cat1.removals.co2;
+            
+            finalResults = {
+                summary: {
+                    cat1: total_cat1_co2e,
+                    cat2: results.cat2.co2e,
+                    cat3: results.cat3.co2e,
+                    cat4: results.cat4.co2e,
+                    cat5: results.cat5.co2e,
+                    cat6: results.cat6.co2e,
+                    removals: results.cat1.removals.co2,
+                    total_gross_emissions: total_gross,
+                    total_net_emissions: total_net
+                },
+                detail: results,
+                cat1_co2e_breakdown: {
+                    non_biogenic: co2e_cat1_non_bio,
+                    biogenic_ch4_n2o: co2e_cat1_bio
+                }
+            };
+            
+            displayResults(finalResults);
+            document.getElementById('export-btn').disabled = false;
+            switchTab(document.getElementById('tab-results'));
+        };
+
+        // --- DISPLAY RESULTS LOGIC ---
+
+        const displayResults = (res) => {
+            const { summary, detail } = res;
+            
+            let html = `
+                <!-- Grand Totals -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div class="bg-blue-50 p-6 rounded-lg shadow">
+                        <h3 class="text-sm font-medium text-blue-800 uppercase">Total Gross Emissions</h3>
+                        <p class="text-4xl font-bold text-blue-900 mt-2">${fNum(summary.total_gross_emissions)}</p>
+                        <p class="text-sm text-gray-600">tonnes CO2e</p>
+                    </div>
+                    <div class="bg-green-50 p-6 rounded-lg shadow">
+                        <h3 class="text-sm font-medium text-green-800 uppercase">Total Direct Removals</h3>
+                        <p class="text-4xl font-bold text-green-900 mt-2">${fNum(summary.removals)}</p>
+                        <p class="text-sm text-gray-600">tonnes CO2</p>
+                    </div>
+                    <div class="bg-gray-800 text-white p-6 rounded-lg shadow">
+                        <h3 class="text-sm font-medium text-gray-300 uppercase">Total Net Emissions</h3>
+                        <p class="text-4xl font-bold mt-2">${fNum(summary.total_net_emissions)}</p>
+                        <p class="text-sm text-gray-400">tonnes CO2e (Gross - Removals)</p>
+                    </div>
+                </div>
+
+                <!-- Summary by Category -->
+                <h3 class="text-xl font-semibold mb-3">Emissions Summary by Category (tonnes CO2e)</h3>
+                <div class="overflow-x-auto shadow rounded-lg mb-8">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Emissions (tCO2e)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr><td class="px-6 py-4 font-medium">Cat 1: Direct</td><td class="px-6 py-4 text-right">${fNum(summary.cat1)}</td></tr>
+                            <tr><td class="px-6 py-4 font-medium">Cat 2: Imported Energy</td><td class="px-6 py-4 text-right">${fNum(summary.cat2)}</td></tr>
+                            <tr><td class="px-6 py-4 font-medium">Cat 3: Transport</td><td class="px-6 py-4 text-right">${fNum(summary.cat3)}</td></tr>
+                            <tr><td class="px-6 py-4 font-medium">Cat 4: Products Used</td><td class="px-6 py-4 text-right">${fNum(summary.cat4)}</td></tr>
+                            <tr><td class="px-6 py-4 font-medium">Cat 5: Products Sold</td><td class="px-6 py-4 text-right">${fNum(summary.cat5)}</td></tr>
+                            <tr><td class="px-6 py-4 font-medium">Cat 6: Other</td><td class="px-6 py-4 text-right">${fNum(summary.cat6)}</td></tr>
+                        </tbody>
+                        <tfoot class="bg-gray-100">
+                            <tr>
+                                <td class="px-6 py-4 font-bold">Total Gross Emissions</td>
+                                <td class="px-6 py-4 text-right font-bold">${fNum(summary.total_gross_emissions)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Category 1 Detail -->
+                <h3 class="text-xl font-semibold mb-3">Category 1 Detail by Gas (tonnes)</h3>
+                <div class="overflow-x-auto shadow rounded-lg mb-8">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gas</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Mass (tonnes)</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">CO2e (tonnes)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr><td class="px-6 py-4 font-medium" rowspan="3">Non-Biogenic</td>
+                                <td class="px-6 py-4">CO2 (from Combustion & Process)</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.non_biogenic.co2, 4)}</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.non_biogenic.co2 * GWP_AR6.co2)}</td></tr>
+                            <tr><td class="px-6 py-4">CH4 (from Combustion & Fugitive)</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.non_biogenic.ch4, 4)}</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.non_biogenic.ch4 * GWP_AR6.ch4)}</td></tr>
+                            <tr><td class="px-6 py-4">N2O (from Combustion)</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.non_biogenic.n2o, 4)}</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.non_biogenic.n2o * GWP_AR6.n2o)}</td></tr>
+                            
+                            <tr><td class="px-6 py-4 font-medium" rowspan="3">Biogenic</td>
+                                <td class="px-6 py-4">CO2 (Reported, not totaled)</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.biogenic.co2, 4)}</td>
+                                <td class="px-6 py-4 text-right text-gray-500">_</td></tr>
+                            <tr><td class="px-6 py-4">CH4</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.biogenic.ch4, 4)}</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.biogenic.ch4 * GWP_AR6.ch4_bio)}</td></tr>
+                            <tr><td class="px-6 py-4">N2O</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.biogenic.n2o, 4)}</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.biogenic.n2o * GWP_AR6.n2o)}</td></tr>
+
+                            <tr><td class="px-6 py-4 font-medium">Fugitive (F-Gases)</td>
+                                <td class="px-6 py-4">HFCs, PFCs, SF6, NF3...</td>
+                                <td class="px-6 py-4 text-right text-gray-500">_</td>
+                                <td class="px-6 py-4 text-right">${fNum(detail.cat1.non_biogenic.hfcs + detail.cat1.non_biogenic.pfcs + detail.cat1.non_biogenic.sf6 + detail.cat1.non_biogenic.nf3)}</td></tr>
+                        </tbody>
+                        <tfoot class="bg-gray-100">
+                            <tr>
+                                <td class="px-6 py-4" colspan="3"></td>
+                                <td class="px-6 py-4 font-bold text-right">Total Cat 1 CO2e: ${fNum(summary.cat1)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
+
+            setHtml('results-content', html);
+        };
+        
+        // --- EXPORT LOGIC ---
+        
+        const exportResults = () => {
+            if (!finalResults.summary) {
+                alert("Please calculate results first.");
+                return;
+            }
+            
+            const { summary, detail } = finalResults;
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Header
+            csvContent += "ISO 14064-1 GHG Report Summary\r\n";
+            csvContent += `Total Gross Emissions (tCO2e),${fNum(summary.total_gross_emissions)}\r\n`;
+            csvContent += `Total Direct Removals (tCO2e),${fNum(summary.removals)}\r\n`;
+            csvContent += `Total Net Emissions (tCO2e),${fNum(summary.total_net_emissions)}\r\n`;
+            csvContent += "\r\n";
+            
+            // Summary by Category
+            csvContent += "Summary by Category (tCO2e)\r\n";
+            csvContent += "Category,Emissions (tCO2e)\r\n";
+            csvContent += `Cat 1: Direct,${fNum(summary.cat1)}\r\n`;
+            csvContent += `Cat 2: Imported Energy,${fNum(summary.cat2)}\r\n`;
+            csvContent += `Cat 3: Transport,${fNum(summary.cat3)}\r\n`;
+            csvContent += `Cat 4: Products Used,${fNum(summary.cat4)}\r\n`;
+            csvContent += `Cat 5: Products Sold,${fNum(summary.cat5)}\r\n`;
+            csvContent += `Cat 6: Other,${fNum(summary.cat6)}\r\n`;
+            csvContent += "\r\n";
+
+            // Cat 1 Detail
+            csvContent += "Category 1 Detail\r\n";
+            csvContent += "Source Type,Gas,Mass (tonnes),CO2e (tonnes)\r\n";
+            const c1_nb = detail.cat1.non_biogenic;
+            const c1_b = detail.cat1.biogenic;
+            csvContent += `Non-Biogenic,CO2 (Combustion & Process),${fNum(c1_nb.co2, 6)},${fNum(c1_nb.co2 * GWP_AR6.co2)}\r\n`;
+            csvContent += `Non-Biogenic,CH4 (Combustion & Fugitive),${fNum(c1_nb.ch4, 6)},${fNum(c1_nb.ch4 * GWP_AR6.ch4)}\r\n`;
+            csvContent += `Non-Biogenic,N2O (Combustion),${fNum(c1_nb.n2o, 6)},${fNum(c1_nb.n2o * GWP_AR6.n2o)}\r\n`;
+            csvContent += `Biogenic,CO2,${fNum(c1_b.co2, 6)},(Reported, not totaled)\r\n`;
+            csvContent += `Biogenic,CH4,${fNum(c1_b.ch4, 6)},${fNum(c1_b.ch4 * GWP_AR6.ch4_bio)}\r\n`;
+            csvContent += `Biogenic,N2O,${fNum(c1_b.n2o, 6)},${fNum(c1_b.n2o * GWP_AR6.n2o)}\r\n`;
+            csvContent += `Fugitive,F-Gases (tCO2e),-,${fNum(c1_nb.hfcs + c1_nb.pfcs + c1_nb.sf6 + c1_nb.nf3)}\r\n`;
+            
+            // Create download link
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "ghg_report_iso14064_1_v3.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+        
+        // --- INITIALIZATION ---
+        
+        const initializeCalculator = () => {
+            // Set default Grid EF override value in the input box
+            const default_ef_kwh = EFs.energy['Grid Electricity (kWh)'].co2e * 1000;
+            document.getElementById('cat2_elec_ef').value = default_ef_kwh.toFixed(4);
+        };
+        
+        // --- EVENT LISTENERS ---
+        
+        document.addEventListener('DOMContentLoaded', initializeCalculator);
+        document.getElementById('calculate-btn').addEventListener('click', calculateEmissions);
+        document.getElementById('export-btn').addEventListener('click', exportResults);
+
+    </script>
+</body>
+</html>
