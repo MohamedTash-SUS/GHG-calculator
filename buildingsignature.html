@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Normalized Building Energy Signature Tracker</title>
+    
+    <!-- 1. Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Chart.js for graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- 3. Lucide for icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom styles for modal */
+        #help-modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        #help-modal.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        /* Fix for Chart.js responsiveness inside a flex/grid container */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 320px; /* 20rem */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-blue-600 text-white rounded-lg">
+                    <i data-lucide="calculator"></i>
+                </div>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">
+                    Normalized Building Energy Signature Tracker
+                </h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                <a href="https://github.com/google/project-gemini" target="_blank" rel="noopener noreferrer"
+                   class="p-2 text-gray-600 hover:text-gray-900" title="View on GitHub (mock link)">
+                   <i data-lucide="github"></i>
+                </a>
+                <button id="help-button"
+                        class="flex items-center space-x-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                        title="Help & Documentation">
+                    <i data-lucide="help-circle" class="h-5 w-5"></i>
+                    <span class="hidden sm:inline">Help</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+
+        <!-- Input Section -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                <i data-lucide="building" class="mr-2 text-blue-600"></i>
+                1. Building & Energy Data Input
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label for="area-input" class="block text-sm font-medium text-gray-700">
+                        Conditioned Area
+                    </label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <input type="number" id="area-input" value="10000"
+                               class="flex-1 block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                               placeholder="e.g., 10000">
+                        <select id="area-unit-select"
+                                class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500">
+                            <option value="m²">m²</option>
+                            <option value="ft²">ft²</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="energy-unit-select" class="block text-sm font-medium text-gray-700">
+                        Energy Unit
+                    </label>
+                    <select id="energy-unit-select"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <option>kWh</option>
+                        <option>GJ</option>
+                        <option>MWh</option>
+                        <option>MBtu</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="weather-unit" class="block text-sm font-medium text-gray-700">
+                        Degree Day Base (Info)
+                    </label>
+                    <input type="text" id="weather-unit" disabled value="e.g., 18°C or 65°F"
+                           class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 sm:text-sm">
+                </div>
+            </div>
+            
+            <h3 class="text-lg font-medium text-gray-700 mb-2">
+                Monthly Historical Data
+            </h3>
+            <div class="overflow-x-auto max-h-[400px] overflow-y-auto border rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100 sticky top-0">
+                        <tr>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Energy (<span id="energy-unit-label">kWh</span>)</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HDD</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CDD</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Rows will be injected by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button id="add-row-button"
+                        class="flex items-center space-x-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm">
+                    <i data-lucide="plus" class="h-4 w-4"></i>
+                    <span>Add Row</span>
+                </button>
+                <button id="clear-all-button"
+                        class="flex items-center space-x-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm">
+                    <i data-lucide="trash-2" class="h-4 w-4"></i>
+                    <span>Clear All</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert">
+            <strong class="font-bold">Error: </strong>
+            <span id="error-text" class="block sm:inline"></span>
+        </div>
+
+        <!-- Calculate Button -->
+        <div class="flex justify-center">
+            <button id="calculate-button"
+                    class="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                <i data-lucide="calculator"></i>
+                <span>Calculate Baseline & EnPI</span>
+            </button>
+        </div>
+
+        <!-- Output Section (hidden by default) -->
+        <div id="output-section" class="hidden bg-white p-6 rounded-lg shadow-lg mt-6">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-3">
+                <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                    <i data-lucide="check-circle" class="mr-2 text-green-600"></i>
+                    2. Analysis & Reporting
+                </h2>
+                <button id="export-button"
+                        class="flex items-center space-x-1 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm self-start sm:self-center">
+                    <i data-lucide="download" class="h-4 w-4"></i>
+                    <span>Export Results</span>
+                </button>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="border-b border-gray-200">
+                <nav id="tabs" class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button data-tab="dashboard" class="tab-button border-blue-500 text-blue-600 group inline-flex items-center py-3 px-1 border-b-2 font-medium text-sm">
+                        <i data-lucide="area-chart" class="mr-2 h-5 w-5"></i>
+                        <span>Dashboard</span>
+                    </button>
+                    <button data-tab="model" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 group inline-flex items-center py-3 px-1 border-b-2 font-medium text-sm">
+                        <i data-lucide="calculator" class="mr-2 h-5 w-5"></i>
+                        <span>Model Details</span>
+                    </button>
+                    <button data-tab="data" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 group inline-flex items-center py-3 px-1 border-b-2 font-medium text-sm">
+                        <i data-lucide="bar-chart-3" class="mr-2 h-5 w-5"></i>
+                        <span>Data Table</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="mt-6">
+                <!-- Dashboard Tab -->
+                <div id="content-dashboard" class="tab-content space-y-6">
+                    <h3 class="text-lg font-medium text-gray-900">Performance Dashboard</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- KPI Cards -->
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm border">
+                            <h3 class="text-sm font-medium text-gray-500 uppercase">Baseline EUI (EnB)</h3>
+                            <div class="flex items-baseline space-x-1 mt-1">
+                                <span id="kpi-baseline-eui" class="text-2xl font-bold text-gray-800">N/A</span>
+                                <span id="kpi-baseline-eui-unit" class="text-sm text-gray-600">kWh/m²/yr</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Your official weather-normalized energy baseline.</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm border">
+                            <h3 class="text-sm font-medium text-gray-500 uppercase">Latest Year EnPI</h3>
+                            <div class="flex items-baseline space-x-1 mt-1">
+                                <span id="kpi-latest-enpi" class="text-2xl font-bold text-gray-800">N/A</span>
+                                <span id="kpi-latest-enpi-unit" class="text-sm text-gray-600">kWh/m²/yr</span>
+                            </div>
+                            <p id="kpi-latest-enpi-desc" class="text-xs text-gray-500 mt-1">Weather-normalized EUI for latest year.</p>
+                            <div id="kpi-latest-enpi-trend" class="mt-2 flex items-center text-xs">
+                                <!-- Trend data injected by JS -->
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm border">
+                            <h3 class="text-sm font-medium text-gray-500 uppercase">Actual EUI (Latest)</h3>
+                            <div class="flex items-baseline space-x-1 mt-1">
+                                <span id="kpi-latest-actual-eui" class="text-2xl font-bold text-gray-800">N/A</span>
+                                <span id="kpi-latest-actual-eui-unit" class="text-sm text-gray-600">kWh/m²/yr</span>
+                            </div>
+                            <p id="kpi-latest-actual-eui-desc" class="text-xs text-gray-500 mt-1">Actual (un-normalized) EUI for latest year.</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-sm border">
+                            <h3 class="text-sm font-medium text-gray-500 uppercase">Model Fit (R-Squared)</h3>
+                            <div class="flex items-baseline space-x-1 mt-1">
+                                <span id="kpi-model-fit" class="text-2xl font-bold text-gray-800">N/A</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">How well weather predicts energy (1.0 = perfect fit).</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="p-4 border rounded-lg">
+                            <h4 class="text-md font-semibold text-gray-800 mb-4">Historical vs. Normalized Energy Use</h4>
+                            <div class="chart-container">
+                                <canvas id="chart-historical"></canvas>
+                            </div>
+                        </div>
+                        <div class="p-4 border rounded-lg">
+                            <h4 class="text-md font-semibold text-gray-800 mb-4">Year-over-Year EUI & EnPI Tracking</h4>
+                            <div class="chart-container">
+                                <canvas id="chart-eui-tracking"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Details Tab -->
+                <div id="content-model" class="tab-content hidden space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900">Regression Model Details</h3>
+                    <p class="text-sm text-gray-600">
+                        The tool calculated a simple linear regression model based on your data, using Total Degree Days (HDD + CDD) as the
+                        independent variable and Energy Use as the dependent variable.
+                    </p>
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <h4 class="font-semibold">Regression Formula:</h4>
+                        <p class="font-mono text-lg text-blue-700 mt-1">
+                            Energy = <span id="model-formula-slope">N/A</span> × (HDD + CDD) + <span id="model-formula-intercept">N/A</span>
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="p-4 border rounded-lg">
+                            <div class="text-sm font-medium text-gray-500">Building Load Coefficient (BLC)</div>
+                            <div class="text-2xl font-bold text-gray-800" id="model-blc-value">N/A</div>
+                            <div class="text-xs text-gray-500" id="model-blc-unit">Energy per Total Degree Day</div>
+                        </div>
+                        <div class="p-4 border rounded-lg">
+                            <div class="text-sm font-medium text-gray-500">Baseload (Weather-Independent)</div>
+                            <div class="text-2xl font-bold text-gray-800" id="model-baseload-value">N/A</div>
+                            <div class="text-xs text-gray-500" id="model-baseload-unit">Energy per month</div>
+                        </div>
+                        <div class="p-4 border rounded-lg">
+                            <div class="text-sm font-medium text-gray-500">R-Squared (Model Fit)</div>
+                            <div class="text-2xl font-bold text-gray-800" id="model-rsquared-value">N/A</div>
+                            <div class="text-xs text-gray-500" id="model-rsquared-percent">(N/A% of energy variance explained by weather)</div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 italic mt-4">
+                        <strong>Note:</strong> This is a simple 2-parameter model. For advanced analysis (e.g., ISO 50001 compliance), 
+                        a 3-parameter change-point model (separating HDD and CDD) is often used. This tool provides a strong
+                        foundational estimate for MT&R.
+                    </p>
+                </div>
+
+                <!-- Data Table Tab -->
+                <div id="content-data" class="tab-content hidden space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900">Processed Data Table</h3>
+                    <div class="overflow-x-auto max-h-[500px] overflow-y-auto border rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100 sticky top-0">
+                                <tr>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TDD (HDD+CDD)</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual Energy</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Normalized Energy</th>
+                                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Savings/Loss</th>
+                                </tr>
+                            </thead>
+                            <tbody id="processed-data-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Data injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                    <i data-lucide="help-circle" class="mr-2 text-blue-600"></i>
+                    Documentation & Concepts
+                </h2>
+                <button id="help-modal-close-x" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-gray-700">
+                    This tool helps you establish a weather-normalized energy baseline for your building, which is essential for effective
+                    Monitoring, Targeting & Reporting (MT&R) and compliance with standards like ISO 50001.
+                </p>
+                <div class="space-y-3">
+                    <h3 class="font-semibold text-gray-800">Key Concepts</h3>
+                    <ul class="list-disc list-inside space-y-2 text-sm text-gray-600">
+                        <li>
+                            <strong>Energy Use Intensity (EUI):</strong> Total energy consumed by a building in a year, divided by its total floor area.
+                            It's a common metric for benchmarking (e.g., kWh/m²/year).
+                        </li>
+                        <li>
+                            <strong>Weather Normalization:</strong> A statistical process to remove the effect of weather variations on your energy data.
+                            This allows for a true "apples-to-apples" comparison of energy performance over time.
+                        </li>
+                        <li>
+                            <strong>Degree Days (HDD/CDD):</strong> Heating Degree Days (HDD) and Cooling Degree Days (CDD) are measures of how much
+                            the outside air temperature was below (HDD) or above (CDD) a specific base temperature (e.g., 18°C or 65°F). They are
+                            strong indicators of weather-driven energy demand for heating and cooling.
+                        </li>
+                        <li>
+                            <strong>Energy Signature (Regression Model):</strong> This tool uses simple linear regression to find the mathematical
+                            relationship between energy use and weather. The model used here is:
+                            <br>
+                            <code class="block bg-gray-100 p-2 rounded text-sm my-1">
+                                Energy = (BLC × (HDD + CDD)) + Baseload
+                            </code>
+                            <ul class="list-disc list-inside ml-6 mt-1">
+                                <li><strong>BLC (Building Load Coefficient):</strong> The slope of the line. It represents how much energy use (e.g., kWh) increases for each additional Total Degree Day (TDD).</li>
+                                <li><strong>Baseload:</strong> The intercept of the line. This is the "weather-independent" energy use—power for lights, computers, ventilation, etc., that runs regardless of the weather.</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <strong>Energy Baseline (EnB):</strong> A "snapshot" of your building's expected energy use under a set of "normal"
+                            weather conditions, based on your regression model. This tool uses the average normalized energy over the historical period as the baseline.
+                        </li>
+                        <li>
+                            <strong>Energy Performance Indicator (EnPI):</strong> Your key metric for tracking performance. This tool uses the
+                            <strong>Weather-Normalized EUI (kWh/m²/year)</strong> as the EnPI. By comparing this year's EnPI to your baseline
+                            EUI, you can see if your energy efficiency has truly improved or worsened, regardless of whether it was a very hot or cold year.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="p-4 bg-gray-50 border-t text-right">
+                <button id="help-modal-close-button"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Got it
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JavaScript Logic -->
+    <script type="module">
+        // --- INITIAL DATA ---
+        const initialSampleData = [
+            { id: '1', year: '2023', month: 'Jan', energy: '120000', hdd: '450', cdd: '10' },
+            { id: '2', year: '2023', month: 'Feb', energy: '115000', hdd: '400', cdd: '15' },
+            { id: '3', year: '2023', month: 'Mar', energy: '100000', hdd: '300', cdd: '50' },
+            { id: '4', year: '2023', month: 'Apr', energy: '85000', hdd: '150', cdd: '100' },
+            { id: '5', year: '2023', month: 'May', energy: '90000', hdd: '50', cdd: '200' },
+            { id: '6', year: '2023', month: 'Jun', energy: '105000', hdd: '10', cdd: '300' },
+            { id: '7', year: '2023', month: 'Jul', energy: '115000', hdd: '0', cdd: '350' },
+            { id: '8', year: '2023', month: 'Aug', energy: '110000', hdd: '5', cdd: '320' },
+            { id: '9', year: '2023', month: 'Sep', energy: '95000', hdd: '40', cdd: '220' },
+            { id: '10', year: '2023', month: 'Oct', energy: '88000', hdd: '120', cdd: '110' },
+            { id: '11', year: '2023', month: 'Nov', energy: '102000', hdd: '280', cdd: '40' },
+            { id: '12', year: '2023', month: 'Dec', energy: '118000', hdd: '420', cdd: '10' },
+            { id: '13', year: '2024', month: 'Jan', energy: '118000', hdd: '460', cdd: '5' },
+            { id: '14', year: '2024', month: 'Feb', energy: '112000', hdd: '410', cdd: '20' },
+            { id: '15', year: '2024', month: 'Mar', energy: '98000', hdd: '310', cdd: '60' },
+            { id: '16', year: '2024', month: 'Apr', energy: '82000', hdd: '140', cdd: '110' },
+            { id: '17', year: '2024', month: 'May', energy: '87000', hdd: '60', cdd: '210' },
+            { id: '18', year: '2024', month: 'Jun', energy: '102000', hdd: '15', cdd: '310' },
+            { id: '19', year: '2024', month: 'Jul', energy: '113000', hdd: '0', cdd: '360' },
+            { id: '20', year: '2024', month: 'Aug', energy: '108000', hdd: '10', cdd: '330' },
+            { id: '21', year: '2024', month: 'Sep', energy: '93000', hdd: '45', cdd: '230' },
+            { id: '22', year: '2024', month: 'Oct', energy: '86000', hdd: '130', cdd: '120' },
+            { id: '23', year: '2024', month: 'Nov', energy: '100000', hdd: '290', cdd: '45' },
+            { id: '24', year: '2024', month: 'Dec', energy: '116000', hdd: '430', cdd: '15' },
+        ];
+
+        // --- STATE ---
+        let appData = initialSampleData;
+        let chartHistorical = null;
+        let chartEuiTracking = null;
+        
+        // --- DOM ELEMENTS ---
+        const areaInput = document.getElementById('area-input');
+        const areaUnitSelect = document.getElementById('area-unit-select');
+        const energyUnitSelect = document.getElementById('energy-unit-select');
+        const energyUnitLabel = document.getElementById('energy-unit-label');
+        const dataTableBody = document.getElementById('data-table-body');
+        const addRowButton = document.getElementById('add-row-button');
+        const clearAllButton = document.getElementById('clear-all-button');
+        const calculateButton = document.getElementById('calculate-button');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const outputSection = document.getElementById('output-section');
+        const processedDataTableBody = document.getElementById('processed-data-table-body');
+
+        // Help Modal Elements
+        const helpButton = document.getElementById('help-button');
+        const helpModal = document.getElementById('help-modal');
+        const helpModalCloseX = document.getElementById('help-modal-close-x');
+        const helpModalCloseButton = document.getElementById('help-modal-close-button');
+
+        // Tab Elements
+        const tabsContainer = document.getElementById('tabs');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Chart Canvases
+        const ctxHistorical = document.getElementById('chart-historical').getContext('2d');
+        const ctxEuiTracking = document.getElementById('chart-eui-tracking').getContext('2d');
+
+        // --- HELPER FUNCTIONS ---
+        
+        /**
+         * Performs a simple linear regression
+         */
+        const simpleLinearRegression = (data) => {
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0, sumYY = 0;
+            const n = data.length;
+            if (n === 0) return { slope: 0, intercept: 0, rSquared: 0 };
+
+            for (let i = 0; i < n; i++) {
+                const x = data[i][0];
+                const y = data[i][1];
+                sumX += x;
+                sumY += y;
+                sumXY += x * y;
+                sumXX += x * x;
+                sumYY += y * y;
+            }
+
+            const denominator = (n * sumXX - sumX * sumX);
+            if (denominator === 0) return { slope: 0, intercept: 0, rSquared: 0 };
+
+            const slope = (n * sumXY - sumX * sumY) / denominator;
+            const intercept = (sumY - slope * sumX) / n;
+            
+            const rNum = (n * sumXY - sumX * sumY);
+            const rDen = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY));
+            if (rDen === 0) return { slope, intercept, rSquared: 0 };
+
+            const rSquared = Math.pow(rNum / rDen, 2);
+            return { slope, intercept, rSquared };
+        };
+
+        /**
+         * Formats a number with commas
+         */
+        const formatNumber = (value, decimals = 0) => {
+            if (isNaN(value) || value === null) return 'N/A';
+            return value.toLocaleString(undefined, {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals,
+            });
+        };
+
+        /**
+         * Shows an error message
+         */
+        const showError = (message) => {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        };
+
+        /**
+         * Hides the error message
+         */
+        const hideError = () => {
+            errorMessage.classList.add('hidden');
+        };
+
+        /**
+         * Checks if calculation can be run
+         */
+        const checkCanCalculate = () => {
+            const area = parseFloat(areaInput.value);
+            const canRun = !isNaN(area) && area > 0 && appData.length >= 12;
+            calculateButton.disabled = !canRun;
+            if (appData.length < 12 && (isNaN(area) || area <= 0)) {
+                showError("Enter a valid area and at least 12 data rows.");
+            } else if (isNaN(area) || area <= 0) {
+                 showError("Please enter a valid, positive number for the area.");
+            } else if (appData.length < 12) {
+                 showError("At least 12 valid data rows are required for analysis.");
+            } else {
+                 hideError();
+            }
+        };
+
+        // --- RENDER FUNCTIONS ---
+        
+        /**
+         * Renders the data input table
+         */
+        const renderDataTable = () => {
+            dataTableBody.innerHTML = ''; // Clear existing rows
+            if (appData.length === 0) {
+                // Optionally show a placeholder
+                dataTableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-gray-500">No data. Click "Add Row" to start.</td></tr>';
+            }
+            appData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-3 py-1"><input type="text" value="${row.year}" data-id="${row.id}" data-field="year" class="w-20 rounded border-gray-300 shadow-sm sm:text-sm"></td>
+                    <td class="px-3 py-1"><input type="text" value="${row.month}" data-id="${row.id}" data-field="month" class="w-20 rounded border-gray-300 shadow-sm sm:text-sm"></td>
+                    <td class="px-3 py-1"><input type="text" value="${row.energy}" data-id="${row.id}" data-field="energy" class="w-28 rounded border-gray-300 shadow-sm sm:text-sm"></td>
+                    <td class="px-3 py-1"><input type="text" value="${row.hdd}" data-id="${row.id}" data-field="hdd" class="w-20 rounded border-gray-300 shadow-sm sm:text-sm"></td>
+                    <td class="px-3 py-1"><input type="text" value="${row.cdd}" data-id="${row.id}" data-field="cdd" class="w-20 rounded border-gray-300 shadow-sm sm:text-sm"></td>
+                    <td class="px-3 py-1">
+                        <button data-id="${row.id}" class="text-red-500 hover:text-red-700 delete-row-button" title="Remove Row">
+                            <i data-lucide="trash-2" class="h-4 w-4 pointer-events-none"></i>
+                        </button>
+                    </td>
+                `;
+                dataTableBody.appendChild(tr);
+            });
+            // Re-run lucide to render new icons
+            lucide.createIcons();
+            checkCanCalculate();
+        };
+
+        /**
+         * Renders the processed data table in the output
+         */
+        const renderProcessedDataTable = (processedData) => {
+            processedDataTableBody.innerHTML = '';
+            processedData.forEach(row => {
+                const tr = document.createElement('tr');
+                const savingsClass = row.savings > 0 ? 'text-green-600' : 'text-red-600';
+                tr.innerHTML = `
+                    <td class="px-3 py-2 whitespace-nowrap text-sm">${row.name}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm">${formatNumber(row.tdd)}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm">${formatNumber(row.actualEnergy)}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm">${formatNumber(row.normalizedEnergy, 0)}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm ${savingsClass}">
+                        ${formatNumber(row.savings, 0)}
+                    </td>
+                `;
+                processedDataTableBody.appendChild(tr);
+            });
+        };
+        
+        /**
+         * Updates the KPI cards in the output
+         */
+        const updateKPIs = (model, results, areaUnit, energyUnit) => {
+            const { baselineEUI, annualReport } = results.euiReport;
+            const { rSquared } = model;
+            const lastYear = annualReport[annualReport.length - 1];
+            const baselineTrend = lastYear ? ((lastYear.normalizedEnPI - baselineEUI) / baselineEUI) * 100 : 0;
+            const euiUnit = `${energyUnit}/${areaUnit}/yr`;
+
+            document.getElementById('kpi-baseline-eui').textContent = formatNumber(baselineEUI, 1);
+            document.getElementById('kpi-baseline-eui-unit').textContent = euiUnit;
+
+            document.getElementById('kpi-latest-enpi').textContent = formatNumber(lastYear.normalizedEnPI, 1);
+            document.getElementById('kpi-latest-enpi-unit').textContent = euiUnit;
+            document.getElementById('kpi-latest-enpi-desc').textContent = `Weather-normalized EUI for ${lastYear.year}.`;
+            
+            const trendEl = document.getElementById('kpi-latest-enpi-trend');
+            const trendIcon = baselineTrend >= 0 ? '<i data-lucide="trending-up" class="h-4 w-4 mr-1"></i>' : '<i data-lucide="trending-down" class="h-4 w-4 mr-1"></i>';
+            const trendClass = baselineTrend >= 0 ? 'text-red-500' : 'text-green-500';
+            trendEl.className = `mt-2 flex items-center text-xs ${trendClass}`;
+            trendEl.innerHTML = `${trendIcon} <span>${Math.abs(baselineTrend).toFixed(1)}% ${baselineTrend >= 0 ? 'worse' : 'better'} than baseline</span>`;
+
+            document.getElementById('kpi-latest-actual-eui').textContent = formatNumber(lastYear.actualEUI, 1);
+            document.getElementById('kpi-latest-actual-eui-unit').textContent = euiUnit;
+            document.getElementById('kpi-latest-actual-eui-desc').textContent = `Actual (un-normalized) EUI for ${lastYear.year}.`;
+            
+            document.getElementById('kpi-model-fit').textContent = formatNumber(rSquared, 2);
+            
+            // Update Model Tab
+            document.getElementById('model-formula-slope').textContent = formatNumber(model.slope, 2);
+            document.getElementById('model-formula-intercept').textContent = formatNumber(model.intercept, 0);
+            document.getElementById('model-blc-value').textContent = formatNumber(model.slope, 2);
+            document.getElementById('model-blc-unit').textContent = `${energyUnit} per Total Degree Day`;
+            document.getElementById('model-baseload-value').textContent = formatNumber(model.intercept, 0);
+            document.getElementById('model-baseload-unit').textContent = `${energyUnit} per month`;
+            document.getElementById('model-rsquared-value').textContent = formatNumber(rSquared, 3);
+            document.getElementById('model-rsquared-percent').textContent = `(${(rSquared * 100).toFixed(1)}% of energy variance explained by weather)`;
+
+            lucide.createIcons(); // Re-render trend icons
+        };
+
+        /**
+         * Updates the charts in the output
+         */
+        const updateCharts = (processedData, annualReport, energyUnit, euiUnit) => {
+            // --- Chart 1: Historical vs. Normalized ---
+            if (chartHistorical) {
+                chartHistorical.destroy();
+            }
+            chartHistorical = new Chart(ctxHistorical, {
+                type: 'line',
+                data: {
+                    labels: processedData.map(d => d.name),
+                    datasets: [
+                        {
+                            label: 'Actual Energy',
+                            data: processedData.map(d => d.actualEnergy),
+                            borderColor: '#ef4444',
+                            backgroundColor: '#ef4444',
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Normalized (Baseline) Energy',
+                            data: processedData.map(d => d.normalizedEnergy),
+                            borderColor: '#3b82f6',
+                            backgroundColor: '#3b82f6',
+                            fill: false,
+                            borderDash: [5, 5],
+                            tension: 0.1,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            title: { display: true, text: energyUnit }
+                        }
+                    }
+                }
+            });
+
+            // --- Chart 2: EUI Tracking ---
+            if (chartEuiTracking) {
+                chartEuiTracking.destroy();
+            }
+            chartEuiTracking = new Chart(ctxEuiTracking, {
+                type: 'bar',
+                data: {
+                    labels: annualReport.map(d => d.year),
+                    datasets: [
+                        {
+                            label: 'Actual EUI',
+                            data: annualReport.map(d => d.actualEUI),
+                            backgroundColor: '#fca5a5',
+                        },
+                        {
+                            label: 'Normalized EnPI',
+                            data: annualReport.map(d => d.normalizedEnPI),
+                            backgroundColor: '#60a5fa',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            title: { display: true, text: euiUnit }
+                        }
+                    }
+                }
+            });
+        };
+
+
+        // --- EVENT HANDLERS ---
+        
+        /**
+         * Handles changes to the data input table
+         */
+        const handleTableInput = (e) => {
+            const { id, field } = e.target.dataset;
+            if (!id || !field) return;
+
+            const value = e.target.value;
+            appData = appData.map(row =>
+                row.id === id ? { ...row, [field]: value } : row
+            );
+            checkCanCalculate(); // Re-check validity
+        };
+
+        /**
+         * Handles clicking the delete button on a row
+         */
+        const handleTableDelete = (e) => {
+            const button = e.target.closest('.delete-row-button');
+            if (!button) return;
+
+            const { id } = button.dataset;
+            appData = appData.filter(row => row.id !== id);
+            renderDataTable(); // Re-render the whole table
+        };
+        
+        /**
+         * Handles adding a new row
+         */
+        const handleAddRow = () => {
+            const newId = (Math.max(0, ...appData.map(r => parseInt(r.id))) + 1).toString();
+            appData.push({ id: newId, year: '', month: '', energy: '', hdd: '', cdd: '' });
+            renderDataTable();
+        };
+
+        /**
+         * Handles clearing all data
+         */
+        const handleClearAll = () => {
+            appData = [{ id: '1', year: '', month: '', energy: '', hdd: '', cdd: '' }];
+            renderDataTable();
+        };
+        
+        /**
+         * Handles changing the energy unit
+         */
+        const handleEnergyUnitChange = (e) => {
+            energyUnitLabel.textContent = e.target.value;
+        };
+
+        /**
+         * Handles the main calculation
+         */
+        const handleCalculate = () => {
+            hideError();
+            const area = parseFloat(areaInput.value);
+            const areaUnit = areaUnitSelect.value;
+            const energyUnit = energyUnitSelect.value;
+
+            // 1. Parse and validate data
+            const parsedData = appData.map(row => ({
+                ...row,
+                energy: parseFloat(row.energy),
+                hdd: parseFloat(row.hdd),
+                cdd: parseFloat(row.cdd),
+            })).filter(row => 
+                !isNaN(row.energy) && !isNaN(row.hdd) && !isNaN(row.cdd) && row.energy > 0
+            );
+
+            if (parsedData.length < 12) {
+                showError("At least 12 valid data rows are required for a meaningful analysis.");
+                return;
+            }
+
+            // 2. Create regression pairs [x, y]
+            const regressionPairs = parsedData.map(row => [row.hdd + row.cdd, row.energy]);
+            
+            // 3. Perform regression
+            const model = simpleLinearRegression(regressionPairs);
+
+            // 4. Process data
+            let totalEnergy = 0;
+            let totalNormalizedEnergy = 0;
+            const yearData = {};
+
+            const processedData = parsedData.map(row => {
+                const tdd = row.hdd + row.cdd;
+                const normalizedEnergy = model.slope * tdd + model.intercept;
+                const actualEnergy = row.energy;
+                const savings = normalizedEnergy - actualEnergy;
+                totalEnergy += actualEnergy;
+                totalNormalizedEnergy += normalizedEnergy;
+                const name = `${row.month} ${row.year}`;
+                
+                if (!yearData[row.year]) {
+                    yearData[row.year] = { actualSum: 0, normalizedSum: 0, count: 0 };
+                }
+                yearData[row.year].actualSum += actualEnergy;
+                yearData[row.year].normalizedSum += normalizedEnergy;
+                yearData[row.year].count += 1;
+                
+                return { name, actualEnergy, normalizedEnergy, tdd, savings };
+            });
+
+            // 5. Calculate EUI & EnPI
+            const numYears = Object.keys(yearData).length;
+            const baselineAnnualNormalizedEnergy = totalNormalizedEnergy / numYears;
+            const baselineEUI = baselineAnnualNormalizedEnergy / area;
+            
+            const annualReport = Object.keys(yearData).sort().map(yearStr => {
+                const year = yearData[yearStr];
+                const annualizationFactor = 12 / year.count;
+                const actualAnnualEnergy = year.actualSum * annualizationFactor;
+                const normalizedAnnualEnergy = year.normalizedSum * annualizationFactor;
+                const actualEUI = actualAnnualEnergy / area;
+                const normalizedEnPI = normalizedAnnualEnergy / area;
+                return { year: yearStr, actualEUI, normalizedEnPI };
+            });
+
+            const results = {
+                processedData,
+                euiReport: {
+                    baselineEUI,
+                    annualReport
+                }
+            };
+
+            // 6. Render all outputs
+            const euiUnit = `${energyUnit}/${areaUnit}/yr`;
+            renderProcessedDataTable(processedData);
+            updateKPIs(model, results, areaUnit, energyUnit);
+            updateCharts(processedData, annualReport, energyUnit, euiUnit);
+            
+            outputSection.classList.remove('hidden');
+        };
+
+        /**
+         * Handles switching tabs
+         */
+        const handleTabClick = (e) => {
+            const button = e.target.closest('.tab-button');
+            if (!button) return;
+
+            const tabId = button.dataset.tab;
+
+            // Update tab button styles
+            tabButtons.forEach(btn => {
+                if (btn.dataset.tab === tabId) {
+                    btn.classList.add('border-blue-500', 'text-blue-600');
+                    btn.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                } else {
+                    btn.classList.remove('border-blue-500', 'text-blue-600');
+                    btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                }
+            });
+
+            // Show/hide content
+            tabContents.forEach(content => {
+                if (content.id === `content-${tabId}`) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        };
+        
+        /**
+         * Show/Hide Modal
+         */
+        const showHelpModal = () => helpModal.classList.remove('hidden');
+        const hideHelpModal = () => helpModal.classList.add('hidden');
+        
+        /**
+         * Export (dummy)
+         */
+        const handleExport = () => {
+            // This is a placeholder. Real export would involve creating a CSV string and downloading it.
+            alert("Export functionality would be implemented here, e.g., to download a CSV of the results.");
+        };
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Attach Listeners
+            areaInput.addEventListener('input', checkCanCalculate);
+            energyUnitSelect.addEventListener('change', handleEnergyUnitChange);
+            addRowButton.addEventListener('click', handleAddRow);
+            clearAllButton.addEventListener('click', handleClearAll);
+            calculateButton.addEventListener('click', handleCalculate);
+            tabsContainer.addEventListener('click', handleTabClick);
+            document.getElementById('export-button').addEventListener('click', handleExport);
+
+            // Table event delegation
+            dataTableBody.addEventListener('change', handleTableInput);
+            dataTableBody.addEventListener('click', handleTableDelete);
+
+            // Modal listeners
+            helpButton.addEventListener('click', showHelpModal);
+            helpModalCloseX.addEventListener('click', hideHelpModal);
+            helpModalCloseButton.addEventListener('click', hideHelpModal);
+            helpModal.addEventListener('click', (e) => {
+                if (e.target === helpModal) hideHelpModal(); // Close on overlay click
+            });
+
+            // Initial Render
+            renderDataTable();
+            
+            // Render all icons
+            lucide.createIcons();
+        });
+
+    </script>
+</body>
+</html>
