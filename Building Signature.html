@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Normalized Building Energy Signature Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <!-- regression-js for linear regression -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/regression/2.0.1/regression.min.js"></script>
+    <!-- Lucide icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <style>
+        /* Custom styles */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        /* Style for the <details> summary element for a cleaner accordion */
+        summary {
+            cursor: pointer;
+            padding: 1rem;
+            background-color: #f9fafb; /* gray-50 */
+            border-radius: 0.5rem; /* rounded-lg */
+            font-weight: 600; /* font-semibold */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        summary:hover {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        details[open] summary {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        .details-content {
+            padding: 1rem;
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            border-top: 0;
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+        }
+        /* Simple loader style */
+        .loader {
+            border: 4px solid #f3f4f6; /* gray-100 */
+            border-top: 4px solid #3b82f6; /* blue-500 */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-4 sm:p-8">
+
+    <div class="max-w-7xl mx-auto bg-white shadow-2xl rounded-lg overflow-hidden">
+        
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 md:p-8">
+            <div class="flex items-center space-x-4">
+                <i data-lucide="line-chart" class="w-12 h-12"></i>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold">Normalized Building Energy Signature Tracker</h1>
+                    <p class="text-blue-100 mt-1">MT&R & ISO 50001 Energy Baseline Tool</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-6 md:p-8 space-y-8">
+
+            <!-- Error/Success Message Bar -->
+            <div id="messageBar" class="hidden p-4 rounded-lg"></div>
+
+            <!-- Section 1: Configuration & Data Input -->
+            <section class="border border-gray-200 rounded-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                    <i data-lucide="settings" class="w-5 h-5 mr-2 text-blue-600"></i>
+                    1. Configuration & Data Input
+                </h2>
+
+                <!-- Configuration Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div>
+                        <label for="buildingArea" class="block text-sm font-medium text-gray-700">Conditioned Area</label>
+                        <input type="number" id="buildingArea" value="10000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="areaUnits" class="block text-sm font-medium text-gray-700">Area Units</label>
+                        <select id="areaUnits" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="m²" selected>m² (Square Meters)</option>
+                            <option value="ft²">ft² (Square Feet)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="energyUnits" class="block text-sm font-medium text-gray-700">Energy Units</label>
+                        <input type="text" id="energyUnits" value="kWh" placeholder="e.g., kWh, GJ, MMBtu" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <!-- Data Input -->
+                <div>
+                    <label for="dataInput" class="block text-sm font-medium text-gray-700">Monthly Historical Data</label>
+                    <textarea id="dataInput" rows="12" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm" placeholder="Paste data as CSV: Month (YYYY-MM), Energy, HDD, CDD&#10;Example:&#10;2023-01,150000,450,10&#10;2023-02,140000,400,15&#10;..."></textarea>
+                    <p class="mt-2 text-xs text-gray-500">Provide at least 12 months of data. Format: `Month,Energy,HDD,CDD` (no header).</p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-4 mt-6">
+                    <button id="calculateButton" class="bg-green-600 text-white font-semibold py-2 px-5 rounded-lg shadow hover:bg-green-700 transition duration-150 flex items-center">
+                        <i data-lucide="calculator" class="w-4 h-4 mr-2"></i>
+                        Calculate Baseline & EnPI
+                    </button>
+                    <button id="loadSampleData" class="bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg shadow hover:bg-blue-700 transition duration-150 flex items-center">
+                        <i data-lucide="clipboard-paste" class="w-4 h-4 mr-2"></i>
+                        Load Sample Data
+                    </button>
+                    <button id="clearData" class="bg-red-600 text-white font-semibold py-2 px-5 rounded-lg shadow hover:bg-red-700 transition duration-150 flex items-center">
+                        <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+                        Clear All
+                    </button>
+                </div>
+            </section>
+
+            <!-- Loader -->
+            <div id="loader" class="hidden flex-col items-center justify-center py-8">
+                <div class="loader"></div>
+                <p class="mt-4 text-gray-600">Performing regression analysis...</p>
+            </div>
+
+            <!-- Section 2: Results Output -->
+            <section id="resultsSection" class="hidden border border-gray-200 rounded-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5 mr-2 text-blue-600"></i>
+                    2. Baseline Model & Key Indicators
+                </h2>
+
+                <!-- Key Metrics Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-gray-50 p-5 rounded-lg shadow-inner">
+                        <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Baseline EUI</h3>
+                        <p class="text-3xl font-bold text-gray-900 mt-1"><span id="baselineEui">-</span></p>
+                        <p class="text-sm text-gray-600" id="euiUnits">kWh/m²/year</p>
+                    </div>
+                    <div class="bg-gray-50 p-5 rounded-lg shadow-inner">
+                        <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Normalized EnPI (Baseline)</h3>
+                        <p class="text-3xl font-bold text-blue-700 mt-1"><span id="baselineEnpi">-</span></p>
+                        <p class="text-sm text-gray-600" id="enpiUnits">kWh/m²/year</p>
+                    </div>
+                    <div class="bg-gray-50 p-5 rounded-lg shadow-inner">
+                        <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">BLC (Heating)</h3>
+                        <p class="text-3xl font-bold text-gray-900 mt-1"><span id="blcHeating">-</span></p>
+                        <p class="text-sm text-gray-600" id="blcUnits">kWh/HDD</p>
+                    </div>
+                    <div class="bg-gray-50 p-5 rounded-lg shadow-inner">
+                        <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Model R-squared (R²)</h3>
+                        <p class="text-3xl font-bold text-gray-900 mt-1"><span id="modelR2">-</span></p>
+                        <p class="text-sm text-gray-600">Model Fit (0-1)</p>
+                    </div>
+                </div>
+                
+                <!-- Model Equation -->
+                <div class="bg-blue-50 border border-blue-200 text-blue-900 p-5 rounded-lg">
+                    <h3 class="font-semibold text-lg mb-2">Weather-Normalized Model (Multiple Linear Regression)</h3>
+                    <p class="font-mono text-sm md:text-base">
+                        Energy = 
+                        (<span id="modelB_hdd" class="font-bold">-</span> * HDD) + 
+                        (<span id="modelB_cdd" class="font-bold">-</span> * CDD) + 
+                        <span id="modelB_base" class="font-bold">-</span> (Baseload)
+                    </p>
+                </div>
+            </section>
+
+            <!-- Section 3: Visualization -->
+            <section id="chartsSection" class="hidden border border-gray-200 rounded-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <i data-lucide="area-chart" class="w-5 h-5 mr-2 text-blue-600"></i>
+                    3. Performance Visualization
+                </h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-lg font-semibold text-center mb-4">Historical vs. Normalized Energy Use</h3>
+                        <div class="relative h-96">
+                            <canvas id="energyTrendChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-center mb-4">Predicted vs. Actual Energy (Model Fit)</h3>
+                         <div class="relative h-96">
+                            <canvas id="predictedVsActualChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Data Table & Export -->
+            <section id="dataTableSection" class="hidden border border-gray-200 rounded-lg p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <i data-lucide="table" class="w-5 h-5 mr-2 text-blue-600"></i>
+                        4. Processed Data Table
+                    </h2>
+                    <button id="exportCsvButton" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-gray-700 transition duration-150 flex items-center mt-4 sm:mt-0">
+                        <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+                        Export to CSV
+                    </button>
+                </div>
+                <div class="overflow-x-auto rounded-lg shadow">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Energy (Actual)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HDD</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CDD</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Energy (Normalized)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Savings / (Waste)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Section 5: Help & Documentation -->
+            <section class="border border-gray-200 rounded-lg p-6">
+                 <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                    <i data-lucide="help-circle" class="w-5 h-5 mr-2 text-blue-600"></i>
+                    5. Guide & Definitions
+                </h2>
+                <div class="space-y-4">
+                    <details>
+                        <summary>What is a Building Energy Signature?</summary>
+                        <div class="details-content prose prose-sm max-w-none">
+                            <p>A Building Energy Signature (or "energy baseline") is a model that describes the relationship between a building's energy consumption and weather variables (like Heating and Cooling Degree Days).</p>
+                            <p>This tool uses a <strong>Variable-based Degree Day method</strong> (Multiple Linear Regression) to create that model. The goal is to separate the weather-dependent energy use (heating/cooling) from the weather-independent energy use (baseload).</p>
+                        </div>
+                    </details>
+                    <details>
+                        <summary>How is this calculated? (Regression Model)</summary>
+                        <div class="details-content prose prose-sm max-w-none">
+                            <p>This tool performs a Multiple Linear Regression (MLR) to find the "best fit" equation that matches your data. The equation is:</p>
+                            <p><code>Energy = (B_hdd * HDD) + (B_cdd * CDD) + B_base</code></p>
+                            <ul>
+                                <li><strong>B_hdd:</strong> The <strong>Building Load Coefficient (BLC) for Heating</strong>. It's the slope of the line, representing how much energy (e.g., kWh) is used for every 1 unit of HDD.</li>
+                                <li><strong>B_cdd:</strong> The <strong>BLC for Cooling</strong>. Represents energy used per 1 unit of CDD.</li>
+                                <li><strong>B_base:</strong> The <strong>Baseload</strong>. This is the y-intercept, representing the energy your building would use even with 0 HDD and 0 CDD (e.g., from lights, computers, ventilation).</li>
+                            </ul>
+                            <p><strong>R-squared (R²):</strong> This value (0-1) tells you how well the model "fits" your data. An R² of 0.85 means 85% of the variation in your energy use is explained by the weather (HDD/CDD). A higher R² (e.g., > 0.75) indicates a strong, reliable model.</p>
+                        </div>
+                    </details>
+                    <details>
+                        <summary>Key Metrics Explained (EUI, EnB, EnPI)</summary>
+                        <div class="details-content prose prose-sm max-w-none">
+                            <ul>
+                                <li><strong>Energy Use Intensity (EUI):</strong> This is your building's total energy consumption divided by its area for a year. It's a raw measure of efficiency. (e.g., kWh/m²/year).</li>
+                                <li><strong>Energy Baseline (EnB):</strong> This is your calculated regression model (the equation). It's the "benchmark" against which future performance is measured.</li>
+                                <li><strong>Energy Performance Indicator (EnPI):</strong> This is your EUI after it has been "weather-normalized." It represents what your energy use *would have been* under a set of "standard" weather conditions (in this case, the average weather during your baseline period).</li>
+                            </ul>
+                            <p><strong>Why does this matter?</strong> By tracking your <strong>EnPI</strong>, you can prove energy savings even if a future year is much hotter or colder. If your raw EUI goes up but your EnPI goes down, it means you successfully saved energy, but the weather was more severe.</p>
+                        </div>
+                    </details>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // --- Global Variables ---
+        let db = [];
+        let config = {};
+        let model = {};
+        let energyTrendChart = null;
+        let predictedVsActualChart = null;
+
+        // --- DOM Elements ---
+        const calculateButton = document.getElementById('calculateButton');
+        const loadSampleData = document.getElementById('loadSampleData');
+        const clearData = document.getElementById('clearData');
+        const dataInput = document.getElementById('dataInput');
+        const buildingAreaEl = document.getElementById('buildingArea');
+        const areaUnitsEl = document.getElementById('areaUnits');
+        const energyUnitsEl = document.getElementById('energyUnits');
+        
+        const messageBar = document.getElementById('messageBar');
+        const loader = document.getElementById('loader');
+        
+        const resultsSection = document.getElementById('resultsSection');
+        const chartsSection = document.getElementById('chartsSection');
+        const dataTableSection = document.getElementById('dataTableSection');
+
+        const baselineEuiEl = document.getElementById('baselineEui');
+        const euiUnitsEl = document.getElementById('euiUnits');
+        const baselineEnpiEl = document.getElementById('baselineEnpi');
+        const enpiUnitsEl = document.getElementById('enpiUnits');
+        const blcHeatingEl = document.getElementById('blcHeating');
+        const blcUnitsEl = document.getElementById('blcUnits');
+        const modelR2El = document.getElementById('modelR2');
+
+        const modelB_hdd = document.getElementById('modelB_hdd');
+        const modelB_cdd = document.getElementById('modelB_cdd');
+        const modelB_base = document.getElementById('modelB_base');
+        
+        const dataTableBody = document.getElementById('dataTableBody');
+        const exportCsvButton = document.getElementById('exportCsvButton');
+
+        // --- Utility Functions ---
+        function showMessage(message, type = 'success') {
+            messageBar.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+            if (type === 'success') {
+                messageBar.classList.add('bg-green-100', 'text-green-800');
+            } else {
+                messageBar.classList.add('bg-red-100', 'text-red-800');
+            }
+            messageBar.textContent = message;
+            messageBar.classList.remove('hidden');
+        }
+
+        function hideMessage() {
+            messageBar.classList.add('hidden');
+        }
+
+        function showLoader() {
+            loader.style.display = 'flex';
+            resultsSection.classList.add('hidden');
+            chartsSection.classList.add('hidden');
+            dataTableSection.classList.add('hidden');
+            hideMessage();
+        }
+
+        function hideLoader() {
+            loader.style.display = 'none';
+        }
+
+        // --- Core Functions ---
+
+        /**
+         * Loads sample data into the input fields.
+         */
+        function loadSample() {
+            buildingAreaEl.value = "15000";
+            areaUnitsEl.value = "m²";
+            energyUnitsEl.value = "kWh";
+            dataInput.value = `2023-01,220500,480,5
+2023-02,195000,410,8
+2023-03,170000,320,20
+2023-04,110000,150,45
+2023-05,80000,50,110
+2023-06,95000,10,220
+2023-07,115000,2,310
+2023-08,120000,5,320
+2023-09,90000,40,200
+2023-10,130000,180,60
+2023-11,180000,350,25
+2023-12,210000,450,10
+2024-01,235000,510,6
+2024-02,205000,430,12
+2024-03,180000,340,22
+2024-04,120000,160,50`;
+            showMessage('Sample data loaded. Click "Calculate" to run the analysis.', 'success');
+        }
+
+        /**
+         * Clears all inputs, data, and charts.
+         */
+        function clearAll() {
+            dataInput.value = '';
+            buildingAreaEl.value = '10000';
+            energyUnitsEl.value = 'kWh';
+            
+            db = [];
+            model = {};
+            config = {};
+            
+            resultsSection.classList.add('hidden');
+            chartsSection.classList.add('hidden');
+            dataTableSection.classList.add('hidden');
+            hideMessage();
+            
+            if (energyTrendChart) energyTrendChart.destroy();
+            if (predictedVsActualChart) predictedVsActualChart.destroy();
+            
+            dataTableBody.innerHTML = '';
+        }
+
+        /**
+         * Parses data from text input and configuration fields.
+         * @returns {boolean} - True on success, false on failure.
+         */
+        function parseInputs() {
+            // 1. Parse Config
+            config.area = parseFloat(buildingAreaEl.value);
+            config.areaUnits = areaUnitsEl.value;
+            config.energyUnits = energyUnitsEl.value;
+            
+            if (!config.area || config.area <= 0) {
+                showMessage('Building Area must be a positive number.', 'error');
+                return false;
+            }
+
+            // 2. Parse Data
+            const rawData = dataInput.value.trim();
+            if (!rawData) {
+                showMessage('No data provided in the text area.', 'error');
+                return false;
+            }
+            
+            const lines = rawData.split('\n');
+            db = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const parts = line.split(',');
+                if (parts.length !== 4) {
+                    showMessage(`Error on line ${i + 1}: Expected 4 comma-separated values (Month,Energy,HDD,CDD).`, 'error');
+                    return false;
+                }
+                
+                const [month, energy, hdd, cdd] = parts;
+                const energyVal = parseFloat(energy);
+                const hddVal = parseFloat(hdd);
+                const cddVal = parseFloat(cdd);
+
+                if (isNaN(energyVal) || isNaN(hddVal) || isNaN(cddVal)) {
+                    showMessage(`Error on line ${i + 1}: Energy, HDD, and CDD must be numbers.`, 'error');
+                    return false;
+                }
+
+                db.push({
+                    month: month.trim(),
+                    energy: energyVal,
+                    hdd: hddVal,
+                    cdd: cddVal,
+                    predictedEnergy: 0,
+                    savings: 0
+                });
+            }
+
+            if (db.length < 12) {
+                showMessage(`Warning: Only ${db.length} data points found. A minimum of 12 (one full year) is recommended for a reliable baseline.`, 'error'); // Show as error, but allow calculation
+                if (db.length < 4) return false; // Need at least 4 points for MLR with 3 variables
+            }
+            
+            return true;
+        }
+
+        /**
+         * Performs Multiple Linear Regression
+         */
+        function performRegression() {
+            // Format data for regression-js: [[x1, x2, y], [x1, x2, y], ...]
+            // Here: x1 = HDD, x2 = CDD, y = Energy
+            const dataForRegression = db.map(d => [d.hdd, d.cdd, d.energy]);
+            
+            // Perform the regression
+            const result = regression.linear(dataForRegression, { precision: 5 });
+            
+            model.B_hdd = result.equation[0];
+            model.B_cdd = result.equation[1];
+            model.B_base = result.equation[2];
+            model.r2 = result.r2;
+            
+            // Store the model equation as a string
+            model.string = result.string;
+        }
+
+        /**
+         * Calculates all derived metrics (predicted energy, EUI, etc.)
+         */
+        function calculateMetrics() {
+            let totalActualEnergy = 0;
+            let totalNormalizedEnergy = 0;
+            
+            // Calculate predicted energy for each data point
+            db.forEach(d => {
+                d.predictedEnergy = (model.B_hdd * d.hdd) + (model.B_cdd * d.cdd) + model.B_base;
+                d.savings = d.predictedEnergy - d.energy; // Positive = savings (used less than predicted)
+                
+                totalActualEnergy += d.energy;
+                totalNormalizedEnergy += d.predictedEnergy;
+            });
+            
+            // Calculate summary metrics
+            const numYears = db.length / 12;
+            
+            // Baseline EUI (based on actual historical data)
+            model.baselineEui = (totalActualEnergy / numYears) / config.area;
+            
+            // Baseline EnPI (weather-normalized EUI)
+            model.baselineEnpi = (totalNormalizedEnergy / numYears) / config.area;
+        }
+
+        /**
+         * Updates the UI with all calculated results
+         */
+        function updateUI() {
+            // Section 2: Key Indicators & Model
+            const euiUnitString = `${config.energyUnits}/${config.areaUnits}/year`;
+            const blcUnitString = `${config.energyUnits}/HDD`; // Assuming HDD and CDD are same "unit"
+            
+            baselineEuiEl.textContent = model.baselineEui.toFixed(2);
+            euiUnitsEl.textContent = euiUnitString;
+            
+            baselineEnpiEl.textContent = model.baselineEnpi.toFixed(2);
+            enpiUnitsEl.textContent = euiUnitString;
+            
+            blcHeatingEl.textContent = model.B_hdd.toFixed(2);
+            blcUnitsEl.textContent = blcUnitString;
+            
+            modelR2El.textContent = model.r2.toFixed(4);
+
+            document.getElementById('modelB_hdd').textContent = model.B_hdd.toFixed(3);
+            document.getElementById('modelB_cdd').textContent = model.B_cdd.toFixed(3);
+            document.getElementById('modelB_base').textContent = model.B_base.toFixed(0);
+
+            // Section 3: Charts
+            drawCharts();
+
+            // Section 4: Data Table
+            populateDataTable();
+
+            // Show the results
+            resultsSection.classList.remove('hidden');
+            chartsSection.classList.remove('hidden');
+            dataTableSection.classList.remove('hidden');
+        }
+
+        /**
+         * Draws/updates the two charts
+         */
+        function drawCharts() {
+            const labels = db.map(d => d.month);
+            const actualData = db.map(d => d.energy);
+            const normalizedData = db.map(d => d.predictedEnergy);
+
+            // Chart 1: Energy Trend (Bar + Line)
+            const ctx1 = document.getElementById('energyTrendChart').getContext('2d');
+            if (energyTrendChart) energyTrendChart.destroy();
+            energyTrendChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: `Actual Energy (${config.energyUnits})`,
+                            data: actualData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)', // Blue
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: `Normalized Baseline (${config.energyUnits})`,
+                            data: normalizedData,
+                            type: 'line',
+                            backgroundColor: 'rgba(255, 99, 132, 0.6)', // Red
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            tension: 0.1,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: `Energy (${config.energyUnits})` }
+                        },
+                        x: {
+                            title: { display: true, text: 'Month' }
+                        }
+                    }
+                }
+            });
+
+            // Chart 2: Predicted vs. Actual (Scatter)
+            const ctx2 = document.getElementById('predictedVsActualChart').getContext('2d');
+            const scatterData = db.map(d => ({ x: d.energy, y: d.predictedEnergy }));
+            
+            // Find min/max for 1:1 line
+            const allValues = [...actualData, ...normalizedData];
+            const minVal = Math.min(...allValues) * 0.9;
+            const maxVal = Math.max(...allValues) * 1.1;
+            const idealLine = [{x: minVal, y: minVal}, {x: maxVal, y: maxVal}];
+
+            if (predictedVsActualChart) predictedVsActualChart.destroy();
+            predictedVsActualChart = new Chart(ctx2, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Monthly Data Points',
+                            data: scatterData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)' // Blue
+                        },
+                        {
+                            label: 'Ideal 1:1 Line',
+                            data: idealLine,
+                            type: 'line',
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)', // Green
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            fill: false,
+                            borderDash: [5, 5],
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: `Actual Energy (${config.energyUnits})` },
+                            min: minVal,
+                            max: maxVal
+                        },
+                        y: {
+                            title: { display: true, text: `Predicted Energy (${config.energyUnits})` },
+                            min: minVal,
+                            max: maxVal
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `(Actual: ${context.parsed.x.toFixed(0)}, Predicted: ${context.parsed.y.toFixed(0)})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * Populates the data table
+         */
+        function populateDataTable() {
+            dataTableBody.innerHTML = ''; // Clear existing
+            
+            db.forEach(d => {
+                const row = document.createElement('tr');
+                row.classList.add('hover:bg-gray-50');
+                
+                const savingsVal = d.savings;
+                let savingsClass = 'text-gray-800';
+                if (savingsVal > 0) {
+                    savingsClass = 'text-green-600 font-medium'; // Savings
+                } else if (savingsVal < 0) {
+                    savingsClass = 'text-red-600 font-medium'; // Waste
+                }
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${d.month}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${d.energy.toFixed(0)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${d.hdd.toFixed(0)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${d.cdd.toFixed(0)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-700 font-medium">${d.predictedEnergy.toFixed(0)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${savingsClass}">${savingsVal.toFixed(0)}</td>
+                `;
+                dataTableBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Exports the data table to CSV
+         */
+        function exportCsv() {
+            if (db.length === 0) {
+                showMessage('No data to export. Run a calculation first.', 'error');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Add configuration
+            csvContent += `Building Area,${config.area},${config.areaUnits}\n`;
+            csvContent += `Energy Units,${config.energyUnits}\n`;
+            csvContent += `Baseline EUI,${model.baselineEui.toFixed(2)},${config.energyUnits}/${config.areaUnits}/year\n`;
+            csvContent += `Baseline EnPI,${model.baselineEnpi.toFixed(2)},${config.energyUnits}/${config.areaUnits}/year\n`;
+            csvContent += `Model R2,${model.r2.toFixed(4)}\n`;
+            csvContent += `Model Equation,Energy = (${model.B_hdd.toFixed(4)} * HDD) + (${model.B_cdd.toFixed(4)} * CDD) + ${model.B_base.toFixed(2)}\n\n`;
+
+            // Add table headers
+            csvContent += "Month,Energy_Actual,HDD,CDD,Energy_Normalized,Savings_Waste\n";
+
+            // Add table rows
+            db.forEach(d => {
+                const row = [
+                    d.month,
+                    d.energy.toFixed(0),
+                    d.hdd.toFixed(0),
+                    d.cdd.toFixed(0),
+                    d.predictedEnergy.toFixed(0),
+                    d.savings.toFixed(0)
+                ].join(',');
+                csvContent += row + "\n";
+            });
+
+            // Create download link
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "energy_baseline_report.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        /**
+         * Main function to run the entire analysis
+         */
+        function runAnalysis() {
+            showLoader();
+            
+            // Using setTimeout to allow the loader to render before the heavy computation
+            setTimeout(() => {
+                try {
+                    // 1. Parse and Validate
+                    if (!parseInputs()) {
+                        hideLoader();
+                        return; // Error message already shown
+                    }
+                    
+                    // 2. Run Model
+                    performRegression();
+                    
+                    // 3. Calculate Metrics
+                    calculateMetrics();
+                    
+                    // 4. Update UI
+                    updateUI();
+                    
+                    hideLoader();
+                    showMessage(`Analysis complete. Model R² is ${model.r2.toFixed(4)}.`, 'success');
+
+                } catch (error) {
+                    hideLoader();
+                    showMessage(`An unexpected error occurred: ${error.message}`, 'error');
+                    console.error(error);
+                }
+            }, 50); // 50ms delay
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons(); // Activate Lucide icons
+            loadSampleData.addEventListener('click', loadSample);
+            clearData.addEventListener('click', clearAll);
+            calculateButton.addEventListener('click', runAnalysis);
+            exportCsvButton.addEventListener('click', exportCsv);
+        });
+
+    </script>
+</body>
+</html>
