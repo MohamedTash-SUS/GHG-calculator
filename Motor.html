@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electric Motor System Efficiency Analyzer</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Custom styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray bg */
+        }
+        .dark body {
+            background-color: #111827; /* Dark gray bg */
+        }
+        
+        /* Style for sortable table headers */
+        .sortable {
+            cursor: pointer;
+            position: relative;
+            padding-right: 20px; /* Space for sort icon */
+        }
+        .sortable::after,
+        .sortable::before {
+            content: '';
+            position: absolute;
+            right: 5px;
+            border: 4px solid transparent;
+        }
+        .sortable::before {
+            bottom: 10px;
+            border-bottom-color: #9ca3af; /* Default arrow color */
+        }
+        .sortable::after {
+            top: 10px;
+            border-top-color: #9ca3af; /* Default arrow color */
+        }
+        
+        /* Active sort direction */
+        .sortable[data-sort-dir="asc"]::after {
+            border-top-color: #3b82f6; /* Active (blue) */
+        }
+        .sortable[data-sort-dir="desc"]::before {
+            border-bottom-color: #3b82f6; /* Active (blue) */
+        }
+
+        /* Input number fields: remove spinners in Chrome, Safari, Edge, Opera */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        /* Input number fields: remove spinners in Firefox */
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="text-gray-900 dark:text-gray-100">
+
+    <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                Electric Motor System Efficiency Analyzer
+            </h1>
+            <p class="mt-1 text-lg text-gray-600 dark:text-gray-400">
+                Analyze Energy Management Opportunities (EMOs) for industrial motors.
+            </p>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Left Column: Input Form -->
+            <div class="lg:col-span-1">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4">Add Motor for Analysis</h2>
+                    <form id="motor-form" class="space-y-4">
+                        
+                        <div>
+                            <label for="motor-id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Motor Name / ID</label>
+                            <input type="text" id="motor-id" placeholder="e.g., Pump A-101" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="nphp" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nameplate HP</label>
+                                <input type="number" id="nphp" min="0" placeholder="e.g., 100" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                            </div>
+                            <div>
+                                <label for="hours" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Hours/Year</label>
+                                <input type="number" id="hours" min="0" placeholder="e.g., 8760" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="load-factor" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Motor Load Factor: <span id="load-factor-display" class="font-bold">75%</span></label>
+                            <input type="range" id="load-factor" min="0" max="100" value="75" class="mt-1 block w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="eff-existing" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Existing Eff. (%)</label>
+                                <input type="number" id="eff-existing" min="0" max="100" placeholder="e.g., 88" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                            </div>
+                            <div>
+                                <label for="eff-proposed" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Proposed Eff. (%)</label>
+                                <input type="number" id="eff-proposed" min="0" max="100" placeholder="e.g., 95" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="cost-kwh" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Electricity Cost ($/kWh)</label>
+                                <input type="number" id="cost-kwh" min="0" step="0.01" placeholder="e.g., 0.10" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                            </div>
+                            <div>
+                                <label for="cost-motor" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upgrade Cost ($)</label>
+                                <input type="number" id="cost-motor" min="0" placeholder="e.g., 5000" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Add Motor to Analysis
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Column: Results and Summary -->
+            <div class="lg:col-span-2 space-y-8">
+                
+                <!-- Summary Panel -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4">Project Summary (All Motors)</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                        This summary justifies capital investment and tracks potential savings for ISO 50001 frameworks.
+                    </p>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <!-- Total Cost Savings -->
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Annual Cost Savings</dt>
+                            <dd id="summary-cost" class="mt-1 text-3xl font-bold text-green-600 dark:text-green-500">$0.00</dd>
+                        </div>
+                        <!-- Total Energy Savings -->
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Annual Energy Savings</dt>
+                            <dd id="summary-kwh" class="mt-1 text-3xl font-bold text-blue-600 dark:text-blue-500">0 kWh</dd>
+                        </div>
+                        <!-- Total Demand Reduction -->
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Demand Reduction</dt>
+                            <dd id="summary-kw" class="mt-1 text-3xl font-bold text-blue-600 dark:text-blue-500">0.00 kW</dd>
+                        </div>
+                        <!-- Total Investment -->
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Capital Investment</dt>
+                            <dd id="summary-investment" class="mt-1 text-3xl font-bold text-gray-900 dark:text-white">$0.00</dd>
+                        </div>
+                        <!-- Overall Payback -->
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center col-span-2 md:col-span-1">
+                            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Overall Simple Payback</dt>
+                            <dd id="summary-payback" class="mt-1 text-3xl font-bold text-gray-900 dark:text-white">--- Years</dd>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Table -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                    <h2 class="text-xl font-semibold p-6">Motor Prioritization List</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Motor ID</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">HP</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-sort="kwReduction">kW Reduction</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-sort="kwhSavings">kWh Savings</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-sort="costSavings" data-sort-dir="desc">Cost Savings</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-sort="cost">Upgrade Cost</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-sort="payback">Payback (Yrs)</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="motor-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <!-- Rows will be injected here by JavaScript -->
+                                <tr>
+                                    <td colspan="8" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                        No motors added yet. Use the form to add motors for analysis.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- STATE ---
+            let motors = [];
+            let currentSort = {
+                key: 'costSavings',
+                dir: 'desc'
+            };
+
+            // --- DOM ELEMENTS ---
+            const form = document.getElementById('motor-form');
+            const loadFactorSlider = document.getElementById('load-factor');
+            const loadFactorDisplay = document.getElementById('load-factor-display');
+            const tableBody = document.getElementById('motor-table-body');
+            const tableHeaders = document.querySelectorAll('.sortable');
+
+            // Summary Panel Elements
+            const summaryCost = document.getElementById('summary-cost');
+            const summaryKwh = document.getElementById('summary-kwh');
+            const summaryKw = document.getElementById('summary-kw');
+            const summaryInvestment = document.getElementById('summary-investment');
+            const summaryPayback = document.getElementById('summary-payback');
+
+            // --- EVENT LISTENERS ---
+            loadFactorSlider.addEventListener('input', (e) => {
+                loadFactorDisplay.textContent = `${e.target.value}%`;
+            });
+
+            form.addEventListener('submit', handleAddMotor);
+            tableBody.addEventListener('click', handleRemoveMotor);
+            tableHeaders.forEach(header => {
+                header.addEventListener('click', handleSort);
+            });
+
+            // --- HANDLERS ---
+            function handleAddMotor(e) {
+                e.preventDefault();
+                
+                // Get raw inputs
+                const inputs = {
+                    id: document.getElementById('motor-id').value || 'Unnamed Motor',
+                    nphp: parseFloat(document.getElementById('nphp').value),
+                    hours: parseFloat(document.getElementById('hours').value),
+                    loadFactor: parseFloat(document.getElementById('load-factor').value),
+                    effExisting: parseFloat(document.getElementById('eff-existing').value),
+                    effProposed: parseFloat(document.getElementById('eff-proposed').value),
+                    costKwh: parseFloat(document.getElementById('cost-kwh').value),
+                    cost: parseFloat(document.getElementById('cost-motor').value),
+                };
+
+                // Validate
+                if (Object.values(inputs).some(val => isNaN(val) && typeof val !== 'string') || inputs.effProposed <= inputs.effExisting) {
+                    // A more robust app would have specific alerts.
+                    // Using console.log to avoid `alert()`
+                    console.error("Invalid input. Please check all fields. Proposed efficiency must be higher than existing.");
+                    // We can show a temporary error message in the UI
+                    const submitButton = form.querySelector('button[type="submit"]');
+                    const originalText = submitButton.textContent;
+                    submitButton.textContent = 'Invalid Input!';
+                    submitButton.classList.add('bg-red-600', 'hover:bg-red-700');
+                    setTimeout(() => {
+                        submitButton.textContent = originalText;
+                        submitButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    }, 2000);
+                    return;
+                }
+
+                // Calculate
+                const motorData = calculateSavings(inputs);
+                
+                // Update state
+                motors.push({ ...inputs, ...motorData, uniqueId: Date.now() });
+
+                // Re-render
+                render();
+                
+                // Reset form
+                form.reset();
+                loadFactorDisplay.textContent = '75%';
+            }
+
+            function handleRemoveMotor(e) {
+                if (e.target.classList.contains('remove-btn')) {
+                    const idToRemove = parseInt(e.target.dataset.id, 10);
+                    motors = motors.filter(motor => motor.uniqueId !== idToRemove);
+                    render();
+                }
+            }
+
+            function handleSort(e) {
+                const sortKey = e.currentTarget.dataset.sort;
+                
+                // Reset directions on other headers
+                tableHeaders.forEach(h => {
+                    if (h.dataset.sort !== sortKey) {
+                        h.removeAttribute('data-sort-dir');
+                    }
+                });
+
+                let sortDir = 'desc';
+                if (currentSort.key === sortKey && currentSort.dir === 'desc') {
+                    sortDir = 'asc';
+                }
+                
+                currentSort = { key: sortKey, dir: sortDir };
+                e.currentTarget.dataset.sortDir = sortDir;
+                
+                render();
+            }
+
+            // --- CORE LOGIC ---
+            function calculateSavings(data) {
+                const { nphp, hours, loadFactor, effExisting, effProposed, costKwh, cost } = data;
+
+                // Convert percentages to decimals
+                const load = loadFactor / 100.0;
+                const effE = effExisting / 100.0;
+                const effP = effProposed / 100.0;
+
+                // Calculate kW
+                // kW = (NPHP * 0.746 * Load Factor) / Efficiency
+                const kwExisting = (nphp * 0.746 * load) / effE;
+                const kwProposed = (nphp * 0.746 * load) / effP;
+
+                // Calculate savings
+                const kwReduction = kwExisting - kwProposed;
+                const kwhSavings = kwReduction * hours;
+                const costSavings = kwhSavings * costKwh;
+                
+                let payback = Infinity;
+                if (costSavings > 0) {
+                    payback = cost / costSavings;
+                }
+
+                return {
+                    kwExisting,
+                    kwProposed,
+                    kwReduction,
+                    kwhSavings,
+                    costSavings,
+                    payback
+                };
+            }
+
+            // --- RENDERING ---
+            function render() {
+                // Sort data
+                sortMotors();
+                
+                // Render table
+                renderTable();
+
+                // Render summary
+                renderSummary();
+            }
+
+            function sortMotors() {
+                const { key, dir } = currentSort;
+                motors.sort((a, b) => {
+                    if (dir === 'asc') {
+                        return a[key] - b[key];
+                    } else {
+                        return b[key] - a[key];
+                    }
+                });
+            }
+
+            function renderTable() {
+                if (motors.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                                No motors added yet. Use the form to add motors for analysis.
+                            </td>
+                        </tr>`;
+                    return;
+                }
+
+                tableBody.innerHTML = ''; // Clear table
+                motors.forEach(motor => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
+                    row.innerHTML = `
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${motor.id}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${formatNumber(motor.nphp, 0)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${formatNumber(motor.kwReduction, 2)} kW</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${formatNumber(motor.kwhSavings, 0)} kWh</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-500">${formatCurrency(motor.costSavings)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${formatCurrency(motor.cost, 0)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${motor.payback === Infinity ? 'N/A' : formatNumber(motor.payback, 2)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            <button class="remove-btn text-red-600 dark:text-red-500 hover:text-red-800" data-id="${motor.uniqueId}">Remove</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            function renderSummary() {
+                const totalCostSavings = motors.reduce((sum, m) => sum + m.costSavings, 0);
+                const totalKwhSavings = motors.reduce((sum, m) => sum + m.kwhSavings, 0);
+                const totalKwReduction = motors.reduce((sum, m) => sum + m.kwReduction, 0);
+                const totalInvestment = motors.reduce((sum, m) => sum + m.cost, 0);
+                
+                let overallPayback = '---';
+                if (totalCostSavings > 0) {
+                    overallPayback = (totalInvestment / totalCostSavings).toFixed(2);
+                }
+
+                summaryCost.textContent = formatCurrency(totalCostSavings);
+                summaryKwh.textContent = `${formatNumber(totalKwhSavings, 0)} kWh`;
+                summaryKw.textContent = `${formatNumber(totalKwReduction, 2)} kW`;
+                summaryInvestment.textContent = formatCurrency(totalInvestment, 0);
+                summaryPayback.textContent = `${overallPayback} Years`;
+            }
+
+
+            // --- UTILITY FUNCTIONS ---
+            function formatCurrency(value, digits = 2) {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: digits,
+                    maximumFractionDigits: digits
+                }).format(value);
+            }
+
+            function formatNumber(value, digits = 2) {
+                return new Intl.NumberFormat('en-US', {
+                    minimumFractionDigits: digits,
+                    maximumFractionDigits: digits
+                }).format(value);
+            }
+            
+            // Initial render
+            render();
+        });
+    </script>
+
+</body>
+</html>
