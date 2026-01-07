@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional LCOE Calculator</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #64748b;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+            font-size: 0.9rem;
+        }
+
+        .formula-box {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            color: #1e3a8a;
+            padding: 10px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        /* Controls & Presets */
+        .controls {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        select, input[type="number"], input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--bg-body);
+            border-color: var(--secondary);
+        }
+
+        /* Grid Layout */
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .calculator-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Input Sections */
+        .section-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--secondary);
+        }
+
+        .unit {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        /* Replacements List */
+        .replacement-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        /* Results Panel (Sticky) */
+        .results-panel {
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+
+        .result-card {
+            background: var(--text-main);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-label {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-value {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-sub {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            color: #93c5fd;
+        }
+
+        .breakdown-list {
+            list-style: none;
+            margin-top: 1rem;
+            text-align: left;
+            background: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 6px;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .breakdown-item:last-child {
+            margin-bottom: 0;
+            padding-top: 0.5rem;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            font-weight: bold;
+        }
+
+        /* Table */
+        .table-container {
+            margin-top: 2rem;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: none; /* Hidden by default */
+        }
+
+        .table-container.visible {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            background: var(--bg-card);
+        }
+
+        th, td {
+            padding: 10px 15px;
+            text-align: right;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #f1f5f9;
+            text-align: right;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        th:first-child, td:first-child {
+            text-align: center;
+        }
+
+        /* Checkbox styling */
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        .checkbox-wrapper input {
+            width: auto;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Tooltip help */
+        .help-icon {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            background: #94a3b8;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 14px;
+            font-size: 10px;
+            cursor: help;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>LCOE Calculator</h1>
+            <p class="subtitle">Levelized Cost of Electricity Analysis Tool</p>
+            <div class="formula-box">
+                LCOE = PV(Total Lifetime Costs) / PV(Total Lifetime Energy)
+            </div>
+        </header>
+
+        <div class="controls">
+            <label for="techPreset" style="width: auto; margin-right: 10px;">Load Preset:</label>
+            <select id="techPreset" style="width: 200px;" onchange="loadPreset()">
+                <option value="custom">Custom</option>
+                <option value="solar" selected>Solar PV (Utility)</option>
+                <option value="wind_on">Onshore Wind</option>
+                <option value="wind_off">Offshore Wind</option>
+                <option value="gas_cc">Natural Gas CC</option>
+                <option value="nuclear">Nuclear</option>
+                <option value="battery">Battery Storage (4hr)</option>
+            </select>
+            <button class="btn btn-outline" onclick="resetDefaults()">Reset to Defaults</button>
+        </div>
+
+        <div class="calculator-grid">
+            <!-- Inputs Column -->
+            <div class="inputs-column">
+                
+                <!-- Section 1: Project Basics -->
+                <div class="section-card">
+                    <div class="section-title">1. Project Basics</div>
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label>Nameplate Capacity <span class="unit">(MW)</span></label>
+                            <input type="number" id="capacity" value="100" min="0.1" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Economic Life <span class="unit">(Years)</span></label>
+                            <input type="number" id="life" value="25" min="1" step="1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Discount Rate (WACC) <span class="unit">(%)</span> <span class="help-icon" title="Weighted Average Cost of Capital">?</span></label>
+                            <input type="number" id="discountRate" value="7.0" min="0" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Capacity Factor <span class="unit">(%)</span></label>
+                            <input type="number" id="capacityFactor" value="25.0" min="0" max="100" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Annual Degradation <span class="unit">(%)</span></label>
+                            <input type="number" id="degradation" value="0.5" min="0" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="includeTax" onchange="toggleTaxFields()">
+                        <label for="includeTax" style="margin:0; color:var(--text-main);">Include Tax & Depreciation Analysis?</label>
+                    </div>
+
+                    <div id="taxFields" class="input-group hidden" style="background: #f8fafc; padding: 10px; border-radius: 6px;">
+                        <div class="input-wrapper">
+                            <label>Marginal Tax Rate <span class="unit">(%)</span></label>
+                            <input type="number" id="taxRate" value="21.0" min="0" max="100" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Depreciation Schedule</label>
+                            <select id="depreciationSchedule">
+                                <option value="none">None (Linear over life)</option>
+                                <option value="sl">Straight-Line (Life)</option>
+                                <option value="macrs5">MACRS 5-Year</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: CAPEX -->
+                <div class="section-card">
+                    <div class="section-title">
+                        2. Initial Investment (CAPEX)
+                        <span id="totalCapexDisplay" style="font-size: 0.9rem; font-weight: 500; color: var(--primary);">Total: $0 M</span>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label>Equipment Costs <span class="unit">($ Million)</span></label>
+                            <input type="number" class="capex-input" id="capexEquip" value="70" min="0" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Balance of System <span class="unit">($ Million)</span></label>
+                            <input type="number" class="capex-input" id="capexBOS" value="20" min="0" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>EPC / Install <span class="unit">($ Million)</span></label>
+                            <input type="number" class="capex-input" id="capexEPC" value="10" min="0" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Soft Costs <span class="unit">($ Million)</span></label>
+                            <input type="number" class="capex-input" id="capexSoft" value="5" min="0" step="0.1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: OPEX -->
+                <div class="section-card">
+                    <div class="section-title">3. Operating & Lifecycle (OPEX)</div>
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label>Fixed O&M <span class="unit">($/kW-year)</span></label>
+                            <input type="number" id="opexFixed" value="15" min="0" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Variable O&M <span class="unit">($/MWh)</span></label>
+                            <input type="number" id="opexVar" value="0" min="0" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Fuel Cost <span class="unit">($/MMBtu)</span></label>
+                            <input type="number" id="fuelCost" value="0" min="0" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Heat Rate <span class="unit">(Btu/kWh)</span> <span class="help-icon" title="Only for thermal plants">?</span></label>
+                            <input type="number" id="heatRate" value="0" min="0" step="100">
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1rem;">
+                        <label style="display:block; margin-bottom:8px;">Major Replacements (Year, Cost $M)</label>
+                        <div class="replacement-row">
+                            <input type="number" id="repYear1" placeholder="Year" min="1">
+                            <input type="number" id="repCost1" placeholder="Cost ($M)" min="0" step="0.1">
+                        </div>
+                        <div class="replacement-row">
+                            <input type="number" id="repYear2" placeholder="Year" min="1">
+                            <input type="number" id="repCost2" placeholder="Cost ($M)" min="0" step="0.1">
+                        </div>
+                        <div class="input-wrapper" style="margin-top: 10px;">
+                            <label>Decommissioning Cost (End of Life) <span class="unit">($ Million)</span></label>
+                            <input type="number" id="decomCost" value="0" min="0" step="0.1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Advanced -->
+                <div class="section-card">
+                    <div class="section-title">4. Escalation Factors</div>
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <label>Fuel Escalation Rate <span class="unit">(%/year)</span></label>
+                            <input type="number" id="escFuel" value="2.0" step="0.1">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>O&M Escalation Rate <span class="unit">(%/year)</span></label>
+                            <input type="number" id="escOpex" value="2.0" step="0.1">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="calculate()">Calculate LCOE</button>
+
+            </div>
+
+            <!-- Results Column -->
+            <div class="results-column">
+                <div class="results-panel">
+                    <div class="result-card">
+                        <div class="result-label">Levelized Cost of Electricity</div>
+                        <div class="result-value" id="resLCOE">--</div>
+                        <div class="result-sub" id="resLCOECents">-- ¢/kWh</div>
+                        
+                        <div class="breakdown-list">
+                            <div class="breakdown-item">
+                                <span>CAPEX Contribution</span>
+                                <span id="shareCapex">0%</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>O&M Contribution</span>
+                                <span id="shareOpex">0%</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Fuel Contribution</span>
+                                <span id="shareFuel">0%</span>
+                            </div>
+                            <div class="breakdown-item" id="taxRow">
+                                <span>Tax Shield Benefit</span>
+                                <span id="shareTax">0%</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Total Generation</span>
+                                <span id="totalGen">0 GWh</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-outline" style="width: 100%;" onclick="toggleTable()">Show Year-by-Year Table</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Table -->
+        <div id="tableWrapper" class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Year</th>
+                        <th>Energy (GWh)</th>
+                        <th>Cost Pre-Tax ($M)</th>
+                        <th>Tax Shield ($M)</th>
+                        <th>Net Cost ($M)</th>
+                        <th>Disc. Cost ($M)</th>
+                        <th>Disc. Energy (GWh)</th>
+                    </tr>
+                </thead>
+                <tbody id="cashFlowTableBody">
+                    <!-- JS generated rows -->
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        // --- PRESETS ---
+        const presets = {
+            solar: {
+                capacity: 100, life: 25, discountRate: 7, capacityFactor: 25, degradation: 0.5,
+                capexEquip: 70, capexBOS: 20, capexEPC: 10, capexSoft: 5,
+                opexFixed: 15, opexVar: 0, fuelCost: 0, heatRate: 0,
+                repYear1: 15, repCost1: 5 // Inverter replacement
+            },
+            wind_on: {
+                capacity: 100, life: 25, discountRate: 7, capacityFactor: 40, degradation: 0.1,
+                capexEquip: 90, capexBOS: 30, capexEPC: 15, capexSoft: 10,
+                opexFixed: 35, opexVar: 0, fuelCost: 0, heatRate: 0,
+                repYear1: "", repCost1: ""
+            },
+            wind_off: {
+                capacity: 500, life: 30, discountRate: 8, capacityFactor: 50, degradation: 0.1,
+                capexEquip: 1000, capexBOS: 500, capexEPC: 300, capexSoft: 200,
+                opexFixed: 100, opexVar: 2, fuelCost: 0, heatRate: 0,
+                repYear1: "", repCost1: ""
+            },
+            gas_cc: {
+                capacity: 500, life: 30, discountRate: 7, capacityFactor: 60, degradation: 0,
+                capexEquip: 200, capexBOS: 100, capexEPC: 100, capexSoft: 50,
+                opexFixed: 10, opexVar: 3, fuelCost: 3.5, heatRate: 6800, // Heat rate in Btu/kWh
+                repYear1: "", repCost1: ""
+            },
+            nuclear: {
+                capacity: 1000, life: 60, discountRate: 6, capacityFactor: 90, degradation: 0,
+                capexEquip: 3000, capexBOS: 2000, capexEPC: 1000, capexSoft: 1000,
+                opexFixed: 120, opexVar: 2, fuelCost: 0.7, heatRate: 10000, // Equivalent for nuclear fuel calc
+                repYear1: 30, repCost1: 500
+            },
+            battery: {
+                capacity: 100, life: 15, discountRate: 7, capacityFactor: 15, degradation: 1.5,
+                capexEquip: 80, capexBOS: 20, capexEPC: 10, capexSoft: 5,
+                opexFixed: 25, opexVar: 0, fuelCost: 0, heatRate: 0, // Charging cost usually modeled as fuel or separately
+                repYear1: "", repCost1: ""
+            }
+        };
+
+        // --- MACRS 5-YEAR RATES ---
+        const MACRS_5 = [0.20, 0.32, 0.192, 0.1152, 0.1152, 0.0576];
+
+        // --- HELPER FUNCTIONS ---
+        const getVal = (id) => parseFloat(document.getElementById(id).value) || 0;
+        const setVal = (id, val) => document.getElementById(id).value = val;
+        const fmtCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(val);
+        const fmtNum = (val, dec) => val.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
+        // --- INIT ---
+        window.addEventListener('DOMContentLoaded', () => {
+            updateTotalCapex();
+            document.querySelectorAll('.capex-input').forEach(input => {
+                input.addEventListener('input', updateTotalCapex);
+            });
+            calculate();
+        });
+
+        function updateTotalCapex() {
+            const total = getVal('capexEquip') + getVal('capexBOS') + getVal('capexEPC') + getVal('capexSoft');
+            document.getElementById('totalCapexDisplay').textContent = `Total: $${fmtNum(total, 1)} Million`;
+        }
+
+        function toggleTaxFields() {
+            const chk = document.getElementById('includeTax');
+            const fields = document.getElementById('taxFields');
+            if (chk.checked) fields.classList.remove('hidden');
+            else fields.classList.add('hidden');
+        }
+
+        function toggleTable() {
+            const table = document.getElementById('tableWrapper');
+            const btn = document.querySelector('.btn-outline[onclick="toggleTable()"]');
+            if (table.classList.contains('visible')) {
+                table.classList.remove('visible');
+                btn.textContent = "Show Year-by-Year Table";
+            } else {
+                table.classList.add('visible');
+                btn.textContent = "Hide Table";
+            }
+        }
+
+        function loadPreset() {
+            const key = document.getElementById('techPreset').value;
+            if (key === 'custom') return;
+            const p = presets[key];
+
+            setVal('capacity', p.capacity);
+            setVal('life', p.life);
+            setVal('discountRate', p.discountRate);
+            setVal('capacityFactor', p.capacityFactor);
+            setVal('degradation', p.degradation);
+            
+            setVal('capexEquip', p.capexEquip);
+            setVal('capexBOS', p.capexBOS);
+            setVal('capexEPC', p.capexEPC);
+            setVal('capexSoft', p.capexSoft);
+            
+            setVal('opexFixed', p.opexFixed);
+            setVal('opexVar', p.opexVar);
+            setVal('fuelCost', p.fuelCost);
+            setVal('heatRate', p.heatRate);
+
+            setVal('repYear1', p.repYear1 || "");
+            setVal('repCost1', p.repCost1 || "");
+            setVal('repYear2', "");
+            setVal('repCost2', "");
+
+            updateTotalCapex();
+            calculate();
+        }
+
+        function resetDefaults() {
+            document.getElementById('techPreset').value = "solar";
+            loadPreset();
+        }
+
+        // --- MAIN CALCULATION ENGINE ---
+        function calculate() {
+            // 1. Gather Inputs
+            const C = getVal('capacity'); // MW
+            const Life = parseInt(getVal('life'));
+            const r = getVal('discountRate') / 100;
+            const CF = getVal('capacityFactor') / 100;
+            const deg = getVal('degradation') / 100;
+
+            const capexTotal = (getVal('capexEquip') + getVal('capexBOS') + getVal('capexEPC') + getVal('capexSoft')) * 1_000_000; // to actual $
+            
+            const opexFixedPerKW = getVal('opexFixed'); // $/kW-yr
+            const opexVarPerMWh = getVal('opexVar'); // $/MWh
+            
+            const fuelPrice = getVal('fuelCost'); // $/MMBtu
+            const heatRate = getVal('heatRate'); // Btu/kWh = MMBtu/MWh * 1000 -> divide by 1000 to get MMBtu/MWh
+            
+            const escFuel = getVal('escFuel') / 100;
+            const escOpex = getVal('escOpex') / 100;
+
+            const replacements = [
+                { year: parseInt(getVal('repYear1')), cost: getVal('repCost1') * 1_000_000 },
+                { year: parseInt(getVal('repYear2')), cost: getVal('repCost2') * 1_000_000 }
+            ];
+            const decomCost = getVal('decomCost') * 1_000_000;
+
+            // Tax Logic
+            const useTax = document.getElementById('includeTax').checked;
+            const taxRate = getVal('taxRate') / 100;
+            const depMethod = document.getElementById('depreciationSchedule').value;
+
+            // 2. Initialize Totals
+            let pvCosts = capexTotal; // Year 0 costs (undiscounted)
+            let pvEnergy = 0;
+            
+            let totalCapexComp = capexTotal; // For breakdown
+            let totalOpexComp = 0;
+            let totalFuelComp = 0;
+            let totalTaxShield = 0;
+            let totalGenGWh = 0;
+
+            let yearRows = [];
+
+            // 3. Loop Years
+            for (let t = 1; t <= Life; t++) {
+                // A. Energy Generation
+                // Capacity (MW) * 8760 * CF * Degradation
+                const energyMWh = C * 8760 * CF * Math.pow(1 - deg, t - 1);
+                
+                // B. Costs
+                // Fixed O&M: $/kW * 1000 * MW * Escalation
+                const fixedOpex = (opexFixedPerKW * 1000 * C) * Math.pow(1 + escOpex, t - 1);
+                
+                // Var O&M: $/MWh * MWh * Escalation
+                const varOpex = (opexVarPerMWh * energyMWh) * Math.pow(1 + escOpex, t - 1);
+                
+                // Fuel: $/MMBtu * (Btu/kWh / 1000) * MWh * Escalation
+                // Note: Btu/kWh / 1000 = MMBtu/MWh
+                const fuel = (fuelPrice * (heatRate / 1000) * energyMWh) * Math.pow(1 + escFuel, t - 1);
+
+                // Replacements
+                let repCost = 0;
+                replacements.forEach(r => { if(r.year === t) repCost += r.cost; });
+                
+                // Decommissioning (Last year)
+                let decom = (t === Life) ? decomCost : 0;
+
+                const annualPreTaxCost = fixedOpex + varOpex + fuel + repCost + decom;
+
+                // C. Depreciation & Tax Shield
+                let depreciationAmount = 0;
+                if (useTax) {
+                    if (depMethod === 'sl') {
+                        depreciationAmount = capexTotal / Life;
+                    } else if (depMethod === 'macrs5') {
+                        const rate = MACRS_5[t-1] || 0;
+                        depreciationAmount = capexTotal * rate;
+                    }
+                }
+
+                // Tax Shield = (Depreciation) * Tax Rate
+                // Note: In detailed models, interest is also deductible, but standard simple LCOE often focuses on depreciation shield.
+                // Or LCOE is defined as PreTax Cost required. 
+                // Formula: PV(Costs - TaxShield) / PV(Energy)
+                const taxShield = depreciationAmount * taxRate;
+                
+                const annualNetCost = annualPreTaxCost - taxShield;
+
+                // D. Discounting
+                const discFactor = 1 / Math.pow(1 + r, t);
+                const discCost = annualNetCost * discFactor;
+                const discEnergy = energyMWh * discFactor;
+
+                // E. Accumulate
+                pvCosts += discCost;
+                pvEnergy += discEnergy;
+
+                // For Breakdown (PV)
+                totalOpexComp += (fixedOpex + varOpex + repCost + decom) * discFactor;
+                totalFuelComp += fuel * discFactor;
+                totalTaxShield += taxShield * discFactor;
+                totalGenGWh += energyMWh / 1000;
+
+                // Store for Table
+                yearRows.push({
+                    year: t,
+                    energy: energyMWh / 1000, // GWh
+                    costRaw: annualPreTaxCost / 1_000_000,
+                    taxShield: taxShield / 1_000_000,
+                    netCost: annualNetCost / 1_000_000,
+                    discCost: discCost / 1_000_000,
+                    discEnergy: discEnergy / 1000 // GWh
+                });
+            }
+
+            // 4. Calculate Final LCOE
+            let lcoe = 0;
+            if (pvEnergy > 0) {
+                lcoe = pvCosts / pvEnergy; // $/MWh
+            }
+
+            // Breakdown Percentages
+            // Note: PV Costs = CAPEX + PV_OPEX + PV_FUEL - PV_TAX_SHIELD
+            // To show contributions, we treat Tax Shield as negative cost
+            const denominator = pvCosts; // If using net costs
+            
+            // Re-normalize bases to sum to 100% of LCOE visual
+            // Visual logic: Base LCOE components stack up, Tax shield pulls it down.
+            // We will display share of the Positive Costs.
+            const totalPositivePV = capexTotal + totalOpexComp + totalFuelComp;
+            
+            // 5. Update UI
+            document.getElementById('resLCOE').textContent = `$${fmtNum(lcoe, 2)}`;
+            document.getElementById('resLCOECents').textContent = `${fmtNum(lcoe / 10, 2)} ¢/kWh`;
+
+            // Shares
+            if (totalPositivePV > 0) {
+                // Calculations relative to total COST (before tax shield)
+                const shareC = (capexTotal / totalPositivePV) * 100;
+                const shareO = (totalOpexComp / totalPositivePV) * 100;
+                const shareF = (totalFuelComp / totalPositivePV) * 100;
+                
+                document.getElementById('shareCapex').textContent = `${fmtNum(shareC, 1)}%`;
+                document.getElementById('shareOpex').textContent = `${fmtNum(shareO, 1)}%`;
+                document.getElementById('shareFuel').textContent = `${fmtNum(shareF, 1)}%`;
+                
+                if (useTax) {
+                   const effectiveReduction = (totalTaxShield / totalPositivePV) * 100;
+                   document.getElementById('shareTax').textContent = `-${fmtNum(effectiveReduction, 1)}%`;
+                   document.getElementById('taxRow').style.display = 'flex';
+                   document.getElementById('taxRow').style.color = 'var(--success)';
+                } else {
+                   document.getElementById('taxRow').style.display = 'none';
+                }
+            }
+            
+            document.getElementById('totalGen').textContent = `${fmtNum(totalGenGWh, 1)} GWh`;
+
+            // 6. Build Table
+            const tbody = document.getElementById('cashFlowTableBody');
+            tbody.innerHTML = '';
+            
+            // Year 0 Row
+            const r0 = `<tr>
+                <td>0</td>
+                <td>-</td>
+                <td>${fmtNum(capexTotal/1_000_000, 2)}</td>
+                <td>-</td>
+                <td>${fmtNum(capexTotal/1_000_000, 2)}</td>
+                <td>${fmtNum(capexTotal/1_000_000, 2)}</td>
+                <td>-</td>
+            </tr>`;
+            tbody.innerHTML += r0;
+
+            yearRows.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.year}</td>
+                    <td>${fmtNum(row.energy, 2)}</td>
+                    <td>${fmtNum(row.costRaw, 2)}</td>
+                    <td>${useTax ? fmtNum(row.taxShield, 2) : '-'}</td>
+                    <td>${fmtNum(row.netCost, 2)}</td>
+                    <td>${fmtNum(row.discCost, 2)}</td>
+                    <td>${fmtNum(row.discEnergy, 2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
