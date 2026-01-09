@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Industrial Net Zero: The Optimization Challenge</title>
+    <style>
+        :root {
+            --primary: #0f172a; /* Slate 900 */
+            --secondary: #334155; /* Slate 700 */
+            --accent: #0ea5e9; /* Sky 500 */
+            --success: #22c55e; /* Green 500 */
+            --warning: #f59e0b; /* Amber 500 */
+            --danger: #ef4444; /* Red 500 */
+            --text: #f1f5f9;
+            --bg: #020617;
+            --card-bg: #1e293b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- Layout & Containers --- */
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--primary);
+            border: 1px solid var(--secondary);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            min-height: 600px;
+        }
+
+        header {
+            background-color: var(--secondary);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #475569;
+        }
+
+        .hud {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .hud-item span { color: var(--accent); }
+
+        #main-view {
+            flex: 1;
+            padding: 2rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- Typography & Generic Elements --- */
+        h1, h2, h3 { margin-bottom: 1rem; color: #fff; }
+        p { line-height: 1.6; color: #cbd5e1; margin-bottom: 1.5rem; max-width: 600px; }
+        
+        button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        button:disabled { background-color: var(--secondary); cursor: not-allowed; transform: none; }
+        button.btn-secondary { background-color: var(--secondary); }
+        button.btn-success { background-color: var(--success); }
+
+        .progress-bar {
+            height: 6px;
+            background-color: var(--secondary);
+            width: 100%;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: var(--success);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* --- Start Screen --- */
+        .start-screen { text-align: center; animation: fadeIn 0.5s; }
+        .hero-icon { font-size: 4rem; margin-bottom: 1rem; display: block; }
+
+        /* --- Level 1: Audit --- */
+        .plant-map {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            background: #334155;
+            position: relative;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 2px solid #475569;
+        }
+        .hotspot {
+            position: absolute;
+            background: rgba(239, 68, 68, 0.3);
+            border: 2px dashed var(--danger);
+            cursor: pointer;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        .hotspot:hover { background: rgba(239, 68, 68, 0.6); }
+        .hotspot.found { border-color: var(--success); background: rgba(34, 197, 94, 0.3); animation: none; }
+
+        /* --- Level 2: Pinch --- */
+        .pinch-board {
+            display: flex;
+            gap: 2rem;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+        .stream-col { flex: 1; display: flex; flex-direction: column; gap: 1rem; }
+        .stream-card {
+            padding: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .stream-hot { background: #7f1d1d; color: #fca5a5; } /* Dark Red */
+        .stream-cold { background: #1e3a8a; color: #bfdbfe; } /* Dark Blue */
+        .stream-card.selected { border-color: white; transform: scale(1.05); }
+        .stream-card.matched { opacity: 0.5; pointer-events: none; text-decoration: line-through; border-color: var(--success); }
+        
+        .pinch-separator {
+            width: 100%;
+            height: 2px;
+            background: var(--warning);
+            margin: 1rem 0;
+            position: relative;
+        }
+        .pinch-separator::after { content: "Pinch Point"; position: absolute; right: 0; top: -20px; color: var(--warning); font-size: 0.8rem; }
+
+        /* --- Level 3: Balance --- */
+        .balance-dashboard {
+            width: 100%;
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        .gauge-container { text-align: center; grid-column: 1 / -1; margin-bottom: 1rem; }
+        .gauge-bar {
+            height: 20px;
+            background: linear-gradient(90deg, var(--warning) 0%, var(--success) 40%, var(--success) 60%, var(--danger) 100%);
+            border-radius: 10px;
+            position: relative;
+            margin-top: 10px;
+        }
+        .gauge-needle {
+            position: absolute;
+            top: -5px;
+            bottom: -5px;
+            width: 4px;
+            background: white;
+            left: 50%;
+            transition: left 0.3s ease;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        .invest-options { display: flex; flex-direction: column; gap: 0.5rem; }
+        .invest-btn { 
+            text-align: left; 
+            background: var(--secondary); 
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .invest-btn.active { border: 2px solid var(--success); background: #064e3b; }
+        .slider-control { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 0.5rem; }
+        input[type=range] { width: 100%; cursor: pointer; }
+
+        /* --- Level 4: Culture --- */
+        .culture-cards { display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center; }
+        .culture-card {
+            background: var(--card-bg);
+            border: 2px solid var(--secondary);
+            padding: 2rem;
+            border-radius: 8px;
+            width: 300px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            text-align: center;
+        }
+        .culture-card:hover { border-color: var(--accent); }
+        .culture-card h3 { color: var(--accent); }
+
+        /* --- End Screen --- */
+        .result-summary {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: left;
+            width: 100%;
+            max-width: 600px;
+        }
+        .badge { display: inline-block; padding: 0.5rem 1rem; background: var(--warning); color: #000; font-weight: bold; border-radius: 20px; margin-bottom: 1rem;}
+
+        /* --- Modals/Overlays --- */
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 10;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: var(--primary);
+            border: 1px solid var(--accent);
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(14, 165, 233, 0.2);
+        }
+        .modal-tip { font-size: 0.9rem; color: var(--accent); margin-top: 1rem; font-style: italic; }
+
+        @keyframes pulse { 0% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.6; transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .hud { font-size: 0.75rem; gap: 0.5rem; }
+            .pinch-board { flex-direction: column; gap: 1rem; }
+            .balance-dashboard { grid-template-columns: 1fr; }
+            #main-view { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <header>
+        <div style="font-weight: bold; display: flex; align-items: center; gap: 10px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20M12 2l4 4M12 2l-4 4"/></svg>
+            NET ZERO CHALLENGE
+        </div>
+        <div class="hud">
+            <div class="hud-item">Level: <span id="level-display">1</span>/4</div>
+            <div class="hud-item">Score: <span id="score-display">0</span></div>
+            <div class="hud-item">Budget: $<span id="budget-display">100</span>k</div>
+        </div>
+    </header>
+    
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+    <main id="main-view">
+        <!-- Content Injected via JS -->
+    </main>
+
+    <!-- Modal for Feedback/Education -->
+    <div id="modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="modal-title">Result</h2>
+            <p id="modal-text">Details go here.</p>
+            <div id="modal-tip" class="modal-tip"></div>
+            <button onclick="Game.closeModal()" style="margin-top: 1rem;">Continue</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * Game State & Engine
+ */
+const Game = {
+    level: 0,
+    score: 0,
+    budget: 100, // $100k start
+    credibility: 50, // 0-100
+    flags: {
+        leanFoundation: false,
+        culture: 'none'
+    },
+    
+    // Elements
+    dom: {
+        view: document.getElementById('main-view'),
+        level: document.getElementById('level-display'),
+        score: document.getElementById('score-display'),
+        budget: document.getElementById('budget-display'),
+        progress: document.getElementById('progress-fill'),
+        modal: document.getElementById('modal'),
+        mTitle: document.getElementById('modal-title'),
+        mText: document.getElementById('modal-text'),
+        mTip: document.getElementById('modal-tip')
+    },
+
+    init() {
+        this.renderStartScreen();
+    },
+
+    updateHUD() {
+        this.dom.level.textContent = this.level === 0 ? '-' : this.level;
+        this.dom.score.textContent = Math.floor(this.score);
+        this.dom.budget.textContent = this.budget;
+        this.dom.progress.style.width = `${(this.level / 4) * 100}%`;
+    },
+
+    showModal(title, text, tip, callback) {
+        this.dom.mTitle.textContent = title;
+        this.dom.mText.innerHTML = text;
+        this.dom.mTip.textContent = tip ? `💡 DID YOU KNOW? ${tip}` : "";
+        this.dom.modal.classList.add('active');
+        this.modalCallback = callback;
+    },
+
+    closeModal() {
+        this.dom.modal.classList.remove('active');
+        if (this.modalCallback) {
+            this.modalCallback();
+            this.modalCallback = null;
+        }
+    },
+
+    renderStartScreen() {
+        this.dom.view.innerHTML = `
+            <div class="start-screen">
+                <div class="hero-icon">🏭</div>
+                <h1>Industrial Net Zero</h1>
+                <p>Welcome, Energy Manager. You have inherited a high-intensity refinery. Your goal: Reduce Energy Intensity (EI), optimize costs, and lead the facility to Net Zero.</p>
+                <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; margin-bottom: 2rem; display: inline-block; text-align: left;">
+                    <small>🎯 <strong>Objective:</strong> Maximize Score (Savings & Credibility)</small><br>
+                    <small>⚠️ <strong>Constraint:</strong> Limited Budget</small><br>
+                    <small>🧠 <strong>Method:</strong> Audit -> Pinch -> Balance -> Culture</small>
+                </div>
+                <br>
+                <button onclick="Game.startLevel1()">Start Simulation</button>
+            </div>
+        `;
+        this.updateHUD();
+    },
+
+    /* ---------------- LEVEL 1: AUDIT ---------------- */
+    startLevel1() {
+        this.level = 1;
+        this.updateHUD();
+        
+        let found = 0;
+        const total = 3;
+
+        this.dom.view.innerHTML = `
+            <h2>Level 1: The Energy Audit</h2>
+            <p>Your facility is leaking energy. Identify 3 Significant Energy Uses (SEUs) on the map before allocating your budget.</p>
+            <div class="plant-map" id="l1-map">
+                <!-- SVG Background -->
+                <svg width="100%" height="100%" viewBox="0 0 500 300" style="position: absolute; top:0; left:0;">
+                    <rect x="50" y="50" width="100" height="100" fill="#475569" stroke="#64748b" />
+                    <text x="65" y="105" fill="#94a3b8" font-size="12">Boilers</text>
+                    
+                    <rect x="250" y="50" width="200" height="80" fill="#475569" stroke="#64748b" />
+                    <text x="310" y="95" fill="#94a3b8" font-size="12">Process Unit A</text>
+                    
+                    <rect x="250" y="180" width="150" height="80" fill="#475569" stroke="#64748b" />
+                    <text x="280" y="225" fill="#94a3b8" font-size="12">Distribution</text>
+                    
+                    <line x1="150" y1="100" x2="250" y2="100" stroke="#64748b" stroke-width="4" />
+                    <line x1="200" y1="100" x2="200" y2="220" stroke="#64748b" stroke-width="4" />
+                    <line x1="200" y1="220" x2="250" y2="220" stroke="#64748b" stroke-width="4" />
+                </svg>
+                
+                <div class="hotspot" style="top: 80px; left: 80px; width: 40px; height: 40px;" data-msg="<b>Boiler Tuning:</b> Excess O2 levels are 6%. Tuning could save 3% fuel."></div>
+                <div class="hotspot" style="top: 200px; left: 300px; width: 50px; height: 50px;" data-msg="<b>Insulation Damaged:</b> Bare steam pipes losing heat to ambient air."></div>
+                <div class="hotspot" style="top: 80px; left: 400px; width: 30px; height: 30px;" data-msg="<b>Failed Trap:</b> Steam trap blowing through live steam. Huge loss!"></div>
+            </div>
+            <div id="l1-controls" style="display:none; text-align: center; animation: fadeIn 0.5s;">
+                <h3>Audit Complete! Choose Strategy:</h3>
+                <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
+                    <button class="btn-secondary" onclick="Game.resolveLevel1('A')">
+                        A: Buy New Boiler<br><small>Cost: $90k | High Impact</small>
+                    </button>
+                    <button onclick="Game.resolveLevel1('B')">
+                        B: Lean Energy Program<br><small>Cost: $20k | Fix leaks & traps</small>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Interactive Logic
+        document.querySelectorAll('.hotspot').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if(e.target.classList.contains('found')) return;
+                e.target.classList.add('found');
+                found++;
+                Game.showModal("Observation Found", e.target.getAttribute('data-msg'), null, () => {
+                    if(found === total) {
+                        document.getElementById('l1-controls').style.display = 'block';
+                    }
+                });
+            });
+        });
+    },
+
+    resolveLevel1(choice) {
+        if (choice === 'A') {
+            this.budget -= 90;
+            this.score += 50;
+            this.showModal("Level 1 Results", 
+                "You installed a shiny new boiler. It's efficient, but you blew nearly your entire budget. Maintenance on the distribution system was ignored.",
+                "New equipment is often less effective than optimizing existing systems first.",
+                () => Game.startLevel2()
+            );
+        } else {
+            this.budget -= 20;
+            this.score += 80;
+            this.credibility += 20;
+            this.flags.leanFoundation = true;
+            this.showModal("Level 1 Results", 
+                "Excellent! By fixing leaks and insulation (Low-Cost/No-Cost), you saved significant energy and kept budget for future projects. This is the 'Lean Energy' approach.",
+                "Fixing steam leaks and traps often has a payback period of less than 6 months.",
+                () => Game.startLevel2()
+            );
+        }
+    },
+
+    /* ---------------- LEVEL 2: PINCH ---------------- */
+    startLevel2() {
+        this.level = 2;
+        this.updateHUD();
+        
+        // Puzzle State
+        let selection = null;
+        let matches = 0;
+
+        this.dom.view.innerHTML = `
+            <h2>Level 2: The Thermodynamic Puzzle</h2>
+            <p>Optimize the heat exchanger network using <b>Pinch Analysis</b>. Match Hot Streams (Red) to Cold Streams (Blue).<br>Rule: Heat flows from Hot to Cold.</p>
+            
+            <div class="pinch-board">
+                <div class="stream-col">
+                    <h3>Hot Streams (Sources)</h3>
+                    <div class="stream-card stream-hot" data-temp="200" data-id="h1">Discharge: 200°C</div>
+                    <div class="stream-card stream-hot" data-temp="150" data-id="h2">Distillate: 150°C</div>
+                    <div class="stream-card stream-hot" data-temp="90" data-id="h3">Waste Water: 90°C</div>
+                </div>
+                
+                <div class="stream-col" style="justify-content: center;">
+                    <div class="pinch-separator"></div>
+                </div>
+
+                <div class="stream-col">
+                    <h3>Cold Streams (Sinks)</h3>
+                    <div class="stream-card stream-cold" data-temp="140" data-id="c1">Feed Preheat: 140°C</div>
+                    <div class="stream-card stream-cold" data-temp="80" data-id="c2">Boiler Water: 80°C</div>
+                    <div class="stream-card stream-cold" data-temp="40" data-id="c3">Office Heating: 40°C</div>
+                </div>
+            </div>
+            <p id="l2-status" style="color: var(--warning); min-height: 20px;"></p>
+        `;
+
+        // Logic
+        const hotCards = document.querySelectorAll('.stream-hot');
+        const coldCards = document.querySelectorAll('.stream-cold');
+
+        const resetSelection = () => {
+            document.querySelectorAll('.stream-card').forEach(c => c.classList.remove('selected'));
+            selection = null;
+        };
+
+        const checkMatch = (hot, cold) => {
+            const tH = parseInt(hot.getAttribute('data-temp'));
+            const tC = parseInt(cold.getAttribute('data-temp'));
+            
+            // Physics check: Hot must be hotter than Cold
+            // Strategy check: High Quality heat should go to High Requirement sink
+            
+            const deltaT = tH - tC;
+
+            if (deltaT < 10) {
+                document.getElementById('l2-status').textContent = `Inefficient! Temperature approach too small (ΔT=${deltaT}°C). Need at least 10°C.`;
+                return;
+            }
+
+            // Simple "Best Fit" logic
+            // 200 -> 140 (Good)
+            // 150 -> 80 (Good)
+            // 90 -> 40 (Good)
+            // If they put 200 -> 40, it's thermodynamically valid but wasteful of high quality energy (Exergy destruction), but we'll allow it for basic game with a lower score.
+            
+            hot.classList.add('matched');
+            cold.classList.add('matched');
+            matches++;
+            
+            // Score calc based on quality matching
+            if((tH===200 && tC===140) || (tH===150 && tC===80) || (tH===90 && tC===40)) {
+                Game.score += 30;
+                document.getElementById('l2-status').textContent = "Perfect Match! Energy Quality preserved.";
+            } else {
+                Game.score += 10;
+                document.getElementById('l2-status').textContent = "Matched, but significant Exergy loss (destroying high quality heat).";
+            }
+
+            resetSelection();
+
+            if(matches === 3) {
+                setTimeout(() => {
+                    Game.showModal("Level 2 Complete", 
+                        "You've integrated the heat network! By using internal heat recovery, you reduced the fuel gas required for the furnaces.",
+                        "Pinch Analysis identifies the 'Minimum Energy Target' before you spend money on equipment.",
+                        () => Game.startLevel3()
+                    );
+                }, 1000);
+            }
+        };
+
+        hotCards.forEach(c => c.addEventListener('click', () => {
+            if(c.classList.contains('matched')) return;
+            resetSelection();
+            selection = c;
+            c.classList.add('selected');
+        }));
+
+        coldCards.forEach(c => c.addEventListener('click', (e) => {
+            if(c.classList.contains('matched')) return;
+            if(selection && selection.classList.contains('stream-hot')) {
+                checkMatch(selection, c);
+            } else {
+                document.getElementById('l2-status').textContent = "Select a Hot Stream first.";
+            }
+        }));
+    },
+
+    /* ---------------- LEVEL 3: BALANCE ---------------- */
+    startLevel3() {
+        this.level = 3;
+        this.updateHUD();
+
+        // Level State
+        let baseConsumption = 100; // Fuel units
+        let baseProduction = 110;  // Off-gas from units
+        let investments = {
+            fgr: { name: "Flare Gas Recovery", cost: 40, recovery: 15, active: false },
+            orc: { name: "Organic Rankine Cycle", cost: 30, reduction: 10, active: false },
+            adv: { name: "Adv. Process Control", cost: 15, reduction: 5, active: false }
+        };
+
+        this.dom.view.innerHTML = `
+            <h2>Level 3: Utility Balance</h2>
+            <p>You have excess fuel gas. Avoid <b>Flaring</b> (Waste/Emissions) and avoid <b>Imports</b> (High Cost).<br>
+            Goal: Keep the needle in the Green Zone.</p>
+            
+            <div class="balance-dashboard">
+                <div class="gauge-container">
+                    <div style="display:flex; justify-content:space-between; font-size: 0.8rem; color:#94a3b8;">
+                        <span>IMPORTING ($$$)</span>
+                        <span>BALANCED</span>
+                        <span>FLARING (CO2)</span>
+                    </div>
+                    <div class="gauge-bar">
+                        <div class="gauge-needle" id="needle"></div>
+                    </div>
+                    <div id="balance-readout" style="margin-top:10px; font-weight:bold;">Net: +10 units (Flaring)</div>
+                </div>
+
+                <div class="invest-options" id="invest-container">
+                    <!-- Buttons injected via JS -->
+                </div>
+
+                <div class="slider-control">
+                    <label>Balance Adjustment (Imports vs RFG)</label>
+                    <input type="range" id="balance-slider" min="-20" max="20" value="0">
+                    <small>Fine tune the pressure balance</small>
+                </div>
+            </div>
+            
+            <button onclick="Game.resolveLevel3()" style="margin-top:2rem;" class="btn-success">Commit Operations</button>
+        `;
+
+        const renderInvestments = () => {
+            const container = document.getElementById('invest-container');
+            container.innerHTML = '<h4>Investments</h4>';
+            Object.keys(investments).forEach(key => {
+                const inv = investments[key];
+                const btn = document.createElement('button');
+                btn.className = `invest-btn ${inv.active ? 'active' : ''}`;
+                btn.disabled = this.budget < inv.cost && !inv.active;
+                btn.innerHTML = `<span>${inv.name}</span> <span>$${inv.cost}k</span>`;
+                btn.onclick = () => {
+                    if (inv.active) {
+                        inv.active = false;
+                        this.budget += inv.cost;
+                    } else {
+                        this.budget -= inv.cost;
+                        inv.active = true;
+                    }
+                    this.updateHUD();
+                    renderInvestments();
+                    updateGauge();
+                };
+                container.appendChild(btn);
+            });
+        };
+
+        const updateGauge = () => {
+            let consumption = baseConsumption;
+            let production = baseProduction;
+
+            // Apply investments
+            if (investments.orc.active) consumption -= investments.orc.reduction;
+            if (investments.adv.active) consumption -= investments.adv.reduction;
+            if (investments.fgr.active) {
+                // FGR takes flare gas and puts it back into fuel header, effectively reducing net production surplus
+                production -= investments.fgr.recovery; 
+            }
+
+            const sliderVal = parseInt(document.getElementById('balance-slider').value);
+            // Slider represents manual trim (e.g. piloting natural gas)
+            
+            const net = (production) - (consumption + sliderVal); 
+            // If Net > 0: Surplus (Flare). If Net < 0: Deficit (Import).
+            
+            this.currentNet = net; // Store for resolution
+
+            const needle = document.getElementById('needle');
+            const readout = document.getElementById('balance-readout');
+            
+            // Map net (-30 to +30) to percentage (0 to 100)
+            let percent = 50 + (net * 1.5); 
+            percent = Math.max(0, Math.min(100, percent));
+            
+            needle.style.left = `${percent}%`;
+
+            if (net > 5) {
+                readout.innerHTML = `<span style="color:var(--danger)">Flaring: +${net.toFixed(1)} units</span>`;
+            } else if (net < -5) {
+                readout.innerHTML = `<span style="color:var(--warning)">Importing: ${Math.abs(net).toFixed(1)} units</span>`;
+            } else {
+                readout.innerHTML = `<span style="color:var(--success)">Balanced (Net Zero impact)</span>`;
+            }
+        };
+
+        document.getElementById('balance-slider').addEventListener('input', updateGauge);
+        renderInvestments();
+        updateGauge();
+        
+        // Save state for resolution
+        this.l3State = { updateGauge }; 
+    },
+
+    resolveLevel3() {
+        const net = Math.abs(this.currentNet);
+        let title, msg;
+        
+        if (net <= 5) {
+            this.score += 100;
+            this.credibility += 20;
+            title = "System Balanced";
+            msg = "Perfect balance! You minimized waste and avoided costly imports.";
+        } else if (this.currentNet > 5) {
+            this.score += 40;
+            title = "High Flaring";
+            msg = "You are flaring excess gas. This creates emissions and visual pollution (bad for community relations).";
+        } else {
+            this.score += 60;
+            this.budget -= 20; // Cost penalty
+            title = "High Imports";
+            msg = "You avoided flaring, but are relying too heavily on expensive imported natural gas.";
+        }
+
+        Game.showModal(title, msg, "Flare Gas Recovery Systems (FGRS) can often pay for themselves by recovering valuable fuel.", () => Game.startLevel4());
+    },
+
+    /* ---------------- LEVEL 4: CULTURE ---------------- */
+    startLevel4() {
+        this.level = 4;
+        this.updateHUD();
+
+        this.dom.view.innerHTML = `
+            <h2>Level 4: The Human Dimension</h2>
+            <p>Technology is installed. Now, how do you ensure the savings persist over the next 10 years?</p>
+            
+            <div class="culture-cards">
+                <div class="culture-card" onclick="Game.resolveLevel4('A')">
+                    <h3>Option A: Enforce Policy</h3>
+                    <p>Strict top-down mandates. Punish operators for exceeding targets. Install locks on thermostats.</p>
+                    <small style="color:var(--secondary)">Cost: $0</small>
+                </div>
+                <div class="culture-card" onclick="Game.resolveLevel4('B')">
+                    <h3>Option B: ISO 50001 & Engagement</h3>
+                    <p>Train staff, "Energy Treasure Hunts", share savings bonuses with teams, visualize data.</p>
+                    <small style="color:var(--warning)">Cost: $15k</small>
+                </div>
+            </div>
+        `;
+    },
+
+    resolveLevel4(choice) {
+        if (choice === 'A') {
+            // Good short term, bad long term
+            this.score += 10;
+        } else {
+            if (this.budget >= 15) {
+                this.budget -= 15;
+                this.score += 100; // Big bonus for sustainability
+                this.flags.culture = 'engaged';
+                
+                // Self funding bonus from Level 1
+                if (this.flags.leanFoundation) {
+                    this.score += 50;
+                    Game.showModal("Synergy Bonus!", "Because you started with Lean Energy (Level 1), the culture change was easier. Operators were already fixing leaks!", null, () => Game.endGame());
+                    return;
+                }
+            } else {
+                Game.showModal("Insufficient Funds", "You wanted to do engagement, but you ran out of money! Forced to choose Option A.", null, () => {
+                   this.resolveLevel4('A');
+                });
+                return;
+            }
+        }
+        Game.endGame();
+    },
+
+    /* ---------------- END GAME ---------------- */
+    endGame() {
+        this.dom.progress.style.width = '100%';
+        let rank = "Energy Intern";
+        if (this.score > 150) rank = "Plant Engineer";
+        if (this.score > 250) rank = "Net Zero Hero";
+
+        this.dom.view.innerHTML = `
+            <div class="result-summary">
+                <h1 style="color:var(--accent)">Simulation Complete</h1>
+                <h2>Final Score: <span style="color:white">${this.score}</span></h2>
+                <div class="badge">${rank}</div>
+                <p>Remaining Budget: $${this.budget}k</p>
+                
+                <hr style="border-color:var(--secondary); margin: 1rem 0;">
+                
+                <h3>Performance Analysis:</h3>
+                <ul style="margin-left: 1.5rem; margin-bottom: 2rem; color: #cbd5e1;">
+                    <li>${this.flags.leanFoundation ? "✅ Started with Lean Energy (Low Cost/High ROI)" : "❌ Bought expensive tech too early"}</li>
+                    <li>${this.flags.culture === 'engaged' ? "✅ Built a sustainable ISO 50001 culture" : "⚠️ Relied on strict rules (savings will decay)"}</li>
+                </ul>
+
+                <button class="btn-success" onclick="location.reload()">Play Again</button>
+            </div>
+        `;
+    }
+};
+
+// Start the game on load
+window.onload = () => Game.init();
+
+</script>
+</body>
+</html>
