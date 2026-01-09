@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scope 1: The Command and Control Challenge</title>
+    <style>
+        :root {
+            --primary: #2E7D32; /* Forest Green */
+            --primary-light: #4CAF50;
+            --secondary: #37474F; /* Blue Gray */
+            --accent: #FFD600; /* Safety Yellow */
+            --danger: #D32F2F;
+            --light: #ECEFF1;
+            --dark: #263238;
+            --glass: rgba(255, 255, 255, 0.95);
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        
+        body {
+            background-color: var(--secondary);
+            background-image: radial-gradient(circle at 50% 50%, #455A64 0%, #263238 100%);
+            margin: 0;
+            padding: 20px;
+            color: var(--dark);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- Game Container --- */
+        #game-container {
+            background: var(--light);
+            width: 100%;
+            max-width: 800px;
+            min-height: 600px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* --- HUD --- */
+        header {
+            background: var(--dark);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid var(--primary);
+        }
+
+        .logo { font-weight: 700; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+        .hud-stats { display: flex; gap: 20px; font-size: 0.9rem; }
+        .stat-box { background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px; }
+        .score-val { color: var(--accent); font-weight: bold; }
+
+        /* --- Progress Bar --- */
+        #progress-container { background: #cfd8dc; height: 8px; width: 100%; }
+        #progress-bar { background: var(--primary-light); height: 100%; width: 0%; transition: width 0.5s ease; }
+
+        /* --- Screens --- */
+        .screen {
+            flex: 1;
+            padding: 30px;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            animation: fadeIn 0.4s ease;
+            overflow-y: auto;
+        }
+
+        .screen.active { display: flex; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 { color: var(--primary); margin-top: 0; }
+        h2 { color: var(--secondary); border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        p { line-height: 1.6; color: #555; }
+        ul { line-height: 1.6; color: #555; }
+        li { margin-bottom: 8px; }
+
+        /* --- Buttons --- */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            margin-top: 20px;
+            align-self: flex-start;
+        }
+        .btn:hover { background: var(--primary-light); transform: translateY(-2px); }
+        .btn:disabled { background: #90A4AE; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: var(--secondary); }
+
+        /* --- Level 1: Audit --- */
+        .audit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 600px) { .audit-grid { grid-template-columns: 1fr; } }
+        
+        .audit-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .audit-item {
+            background: white; border: 2px solid #ccc; padding: 15px; border-radius: 8px;
+            cursor: pointer; text-align: center; transition: all 0.2s;
+        }
+        .audit-item.selected { border-color: var(--primary); background: #E8F5E9; box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3); }
+        .audit-item.matched { opacity: 0.5; cursor: default; border-color: transparent; background: #ddd; }
+        
+        .audit-buckets { display: flex; flex-direction: column; gap: 10px; }
+        .bucket {
+            background: var(--dark); color: white; padding: 15px; border-radius: 8px;
+            cursor: pointer; border: 2px dashed #78909C; text-align: center;
+        }
+        .bucket:hover { border-color: var(--accent); background: #35424a; }
+
+        /* --- Level 2: Tune Up --- */
+        .controls-panel { background: #FFF3E0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid var(--accent); }
+        input[type=range] { width: 100%; margin: 15px 0; }
+        .gauge-container { display: flex; justify-content: space-between; margin-top: 20px; text-align: center; }
+        .gauge-box { background: white; padding: 10px; border-radius: 6px; width: 45%; border: 1px solid #ddd; }
+        .efficiency-bar { height: 20px; background: #ddd; border-radius: 10px; overflow: hidden; margin-top: 5px; }
+        .efficiency-fill { height: 100%; width: 0%; background: var(--danger); transition: width 0.3s, background 0.3s; }
+        .tech-readout { font-family: monospace; font-weight: bold; color: #333; margin-top: 5px; }
+
+        /* --- Level 3: Leak Hunt --- */
+        #leak-canvas-container {
+            position: relative;
+            background: #263238;
+            height: 300px;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+            cursor: crosshair;
+            border: 2px solid #546E7A;
+        }
+        .pipe-svg { width: 100%; height: 100%; opacity: 0.6; }
+        .leak-spot {
+            position: absolute; width: 30px; height: 30px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,0,0,0.8) 0%, rgba(255,0,0,0) 70%);
+            display: none; animation: pulse 1s infinite;
+        }
+        .scanner-tool {
+            position: absolute; width: 60px; height: 60px; border: 2px dashed var(--accent);
+            border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px var(--accent);
+            display: none; /* JS toggles this */
+        }
+        @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.2); opacity: 1; } }
+
+        /* --- Level 4: Decarbonization --- */
+        .strategy-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .card {
+            background: white; border: 2px solid #eee; padding: 15px; border-radius: 8px;
+            cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .card.active { border-color: var(--primary); background: #E8F5E9; }
+        .card-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+        .cost-badge { position: absolute; top: 10px; right: 10px; background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+
+        /* --- Level 5: Management --- */
+        .dilemma-box { display: flex; gap: 20px; margin-top: 30px; }
+        @media (max-width: 600px) { .dilemma-box { flex-direction: column; } }
+        .dilemma-opt {
+            flex: 1; padding: 20px; background: white; border: 2px solid #ddd; border-radius: 8px;
+            text-align: center; cursor: pointer; transition: 0.2s;
+        }
+        .dilemma-opt:hover { border-color: var(--secondary); background: #f5f5f5; }
+        .dilemma-opt.chosen { border-color: var(--primary); background: #E8F5E9; box-shadow: inset 0 0 0 2px var(--primary); }
+
+        /* --- Modal/Tooltip --- */
+        #modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100;
+        }
+        #modal {
+            background: white; padding: 25px; border-radius: 8px; max-width: 600px; width: 90%;
+            text-align: left; position: relative; border-top: 5px solid var(--accent);
+            max-height: 90vh; overflow-y: auto;
+        }
+        #modal h3 { color: var(--dark); margin-top: 0; text-align: center; }
+        #modal-close { margin-top: 20px; width: 100%; }
+        
+        .quant-display {
+            background: var(--dark);
+            color: var(--accent);
+            text-align: center;
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        /* SVG Icons */
+        .icon { width: 24px; height: 24px; vertical-align: middle; fill: currentColor; }
+        
+        .summary-box {
+            background: #E3F2FD;
+            padding: 15px;
+            border-left: 4px solid #1976D2;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <header>
+        <div class="logo">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z"/></svg>
+            Scope 1 Commander
+        </div>
+        <div class="hud-stats">
+            <div class="stat-box">Points: <span id="score-display" class="score-val">0</span></div>
+            <div class="stat-box">Reduction: <span id="reduction-display" class="score-val">0%</span></div>
+        </div>
+    </header>
+    
+    <div id="progress-container"><div id="progress-bar"></div></div>
+
+    <!-- Start Screen -->
+    <div id="screen-start" class="screen active">
+        <h1>Welcome, Environmental Manager.</h1>
+        <p>Your mission is to take command of a manufacturing facility and bring its <strong>Scope 1 (Direct) GHG Emissions</strong> under control.</p>
+        <p>You will face 5 levels of challenges, covering audits, technical fixes, and management strategy.</p>
+        <div style="background: #E0F2F1; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>Mission Brief:</strong> Scope 1 emissions come from sources owned or controlled by the company. Think boilers, vehicles, and chemical processes.
+        </div>
+        <button class="btn" onclick="game.startLevel(1)">Begin Audit</button>
+    </div>
+
+    <!-- Level 1: Audit -->
+    <div id="screen-level1" class="screen">
+        <h2>Level 1: The Direct Emission Audit</h2>
+        <p>Identify sources by clicking an <strong>Asset</strong> on the left, then assigning it to the correct <strong>GHG Protocol Category</strong> on the right.</p>
+        
+        <div class="audit-grid">
+            <div class="audit-items" id="l1-items">
+                <!-- Injected via JS -->
+            </div>
+            <div class="audit-buckets" id="l1-buckets">
+                <div class="bucket" onclick="game.l1SelectBucket('stationary')">Stationary Combustion</div>
+                <div class="bucket" onclick="game.l1SelectBucket('mobile')">Mobile Combustion</div>
+                <div class="bucket" onclick="game.l1SelectBucket('process')">Process Emissions</div>
+                <div class="bucket" onclick="game.l1SelectBucket('fugitive')">Fugitive Emissions</div>
+            </div>
+        </div>
+        <div id="l1-feedback" style="margin-top: 15px; font-weight: bold; min-height: 24px;"></div>
+        <button id="btn-l1-next" class="btn" disabled onclick="game.finishLevel(1)">Next Level</button>
+    </div>
+
+    <!-- Level 2: Tune Up -->
+    <div id="screen-level2" class="screen">
+        <h2>Level 2: The Combustion Tune-Up</h2>
+        <p>The main boiler is running inefficiently. Adjust the <strong>Air-to-Fuel Ratio (λ)</strong> to optimize combustion. </p>
+        <ul style="font-size:0.9rem;">
+            <li><strong>Too Rich (λ &lt; 1.0):</strong> Excess fuel creates dangerous CO & soot.</li>
+            <li><strong>Optimal (λ 1.05-1.15):</strong> Peak efficiency.</li>
+            <li><strong>Too Lean (λ &gt; 1.3):</strong> Excess air wastes heat energy.</li>
+        </ul>
+        
+        <div class="controls-panel">
+            <label>Air/Fuel Ratio Adjustment:</label>
+            <!-- Slider represents Airflow relative to fuel -->
+            <input type="range" id="l2-slider" min="0.8" max="1.6" step="0.05" value="1.5" oninput="game.l2UpdateSlider(this.value)">
+            
+            <div class="gauge-container">
+                <div class="gauge-box">
+                    <div>Combustion State</div>
+                    <div class="tech-readout" id="lambda-readout">λ = 1.50</div>
+                    <!-- Fixed: Added efficiency bar back -->
+                    <div class="efficiency-bar"><div id="eff-bar" class="efficiency-fill" style="width: 20%; background: orange;"></div></div>
+                    <div id="eff-text">High Excess Air</div>
+                </div>
+                <div class="gauge-box">
+                    <div>CO₂e Impact</div>
+                    <div class="efficiency-bar"><div id="emit-bar" class="efficiency-fill" style="width: 80%; background: #D32F2F;"></div></div>
+                    <div id="emit-text">High (Heat Loss)</div>
+                </div>
+            </div>
+        </div>
+        <p style="font-size: 0.9em; color: #666;">*Real-world tip: Tuning boilers is often the most cost-effective Scope 1 reduction.</p>
+        <button id="btn-l2-next" class="btn" disabled onclick="game.finishLevel(2)">Confirm Settings</button>
+    </div>
+
+    <!-- Level 3: Leak Hunt -->
+    <div id="screen-level3" class="screen">
+        <h2>Level 3: The Fugitive Leak Hunt</h2>
+        <p>Our refrigeration and compressed air systems are leaking. Use your cursor (or finger) as an <strong>Ultrasonic Detector</strong>. Scan the pipes below to find 5 hidden leaks.</p>
+        
+        <div id="leak-canvas-container" onmousemove="game.l3Scan(event)" ontouchmove="game.l3Scan(event)">
+            <!-- Simple SVG Pipe Schematic -->
+            <svg class="pipe-svg" viewBox="0 0 800 300">
+                <path d="M50,150 L200,150 L200,50 L400,50 L400,250 L600,250 L600,150 L750,150" fill="none" stroke="#78909C" stroke-width="15"/>
+                <circle cx="200" cy="150" r="12" fill="#546E7A"/>
+                <circle cx="400" cy="50" r="12" fill="#546E7A"/>
+                <circle cx="400" cy="250" r="12" fill="#546E7A"/>
+                <circle cx="600" cy="150" r="12" fill="#546E7A"/>
+            </svg>
+            <div id="scanner" class="scanner-tool"></div>
+            <!-- Hidden leaks positioned absolutely -->
+            <div class="leak-spot" id="leak1" style="top: 135px; left: 185px;"></div>
+            <div class="leak-spot" id="leak2" style="top: 35px; left: 385px;"></div>
+            <div class="leak-spot" id="leak3" style="top: 235px; left: 385px;"></div>
+            <div class="leak-spot" id="leak4" style="top: 135px; left: 585px;"></div>
+            <div class="leak-spot" id="leak5" style="top: 40px; left: 250px;"></div>
+        </div>
+        
+        <div id="l3-status">Leaks Found: <span id="leaks-found-count">0</span>/5</div>
+        <button id="btn-l3-next" class="btn" disabled onclick="game.finishLevel(3)">Seal Leaks</button>
+    </div>
+
+    <!-- Level 4: Decarbonization -->
+    <div id="screen-level4" class="screen">
+        <h2>Level 4: Radical Decarbonization</h2>
+        <p>Efficiency isn't enough to reach Net Zero. Select <strong>Two</strong> strategic initiatives to transform the facility. Choose wisely between cost and impact.</p>
+        
+        <div class="strategy-cards">
+            <div class="card" onclick="game.l4ToggleCard(this, 'fuel')">
+                <div class="cost-badge">$$ Med Cost</div>
+                <span class="card-icon">🔥</span>
+                <strong>Fuel Switching</strong>
+                <p>Convert oil boilers to natural gas or biomass.</p>
+            </div>
+            <div class="card" onclick="game.l4ToggleCard(this, 'ccs')">
+                <div class="cost-badge">$$$$ High Cost</div>
+                <span class="card-icon">☁️</span>
+                <strong>Carbon Capture (CCS)</strong>
+                <p>Install scrubbers to capture process CO2.</p>
+            </div>
+            <div class="card" onclick="game.l4ToggleCard(this, 'offset')">
+                <div class="cost-badge">$ Low Cost</div>
+                <span class="card-icon">🌲</span>
+                <strong>Carbon Offsets</strong>
+                <p>Buy credits. Doesn't reduce actual emissions.</p>
+            </div>
+            <div class="card" onclick="game.l4ToggleCard(this, 'electric')">
+                <div class="cost-badge">$$$ High Cost</div>
+                <span class="card-icon">⚡</span>
+                <strong>Electrification</strong>
+                <p>Replace gas heat with industrial heat pumps.</p>
+            </div>
+        </div>
+        
+        <button id="btn-l4-next" class="btn" disabled onclick="game.finishLevel(4)">Execute Strategy</button>
+    </div>
+
+    <!-- Level 5: Management -->
+    <div id="screen-level5" class="screen">
+        <h2>Level 5: The Human Factor (ISO 50001)</h2>
+        <p>The integrated approach combines cultural engagement with operational discipline. This is the <strong>ISO 50001</strong> model: continuous improvement sustained by both human motivation and systematic rigor.</p>
+        <p>You have limited budget. How do you sustain the reductions?</p>
+        
+        <div class="dilemma-box">
+            <div class="dilemma-opt" id="opt-culture" onclick="game.l5Select('culture')">
+                <h3>Option A: Incentives</h3>
+                <p>Bonuses for staff ideas. Creates excitement, but lacks structure.</p>
+            </div>
+            <div class="dilemma-opt" id="opt-standard" onclick="game.l5Select('standard')">
+                <h3>Option B: Standards</h3>
+                <p>Strict Standard Operating Procedures (SOPs). Ensures consistency, but lowers morale.</p>
+            </div>
+             <div class="dilemma-opt" id="opt-integrated" onclick="game.l5Select('integrated')">
+                <h3>Option C: Integrated Approach</h3>
+                <p>Split budget: 50% Training/Culture + 50% Documentation.</p>
+            </div>
+        </div>
+
+        <button id="btn-l5-next" class="btn" disabled onclick="game.finishLevel(5)">Finalize Policy</button>
+    </div>
+
+    <!-- Screen End -->
+    <div id="screen-end" class="screen">
+        <h1>Mission Report</h1>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 4rem; color: var(--primary); font-weight: bold;" id="final-score">0</div>
+            <div>Total Reduction Points</div>
+        </div>
+        
+        <div id="end-message" style="background: #E8F5E9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <!-- JS injects message -->
+        </div>
+
+        <h3>Key Learnings Summary:</h3>
+        <ul style="color: #444; font-size: 0.95rem;">
+            <li><strong>1. Emission Inventory:</strong> Accurate categorization of Scope 1 sources (stationary combustion, mobile combustion, process emissions, fugitive emissions) is the foundation of any reduction strategy.</li>
+            <li><strong>2. Significant Energy Users:</strong> Targeting SEUs like boilers and high-consumption equipment delivers the highest ROI for emission reductions through combustion optimization and efficiency upgrades.</li>
+            <li><strong>3. Fugitive Emissions:</strong> Often overlooked, refrigerant and compressed air leaks can be extremely potent GHGs. Regular LDAR programs are essential and cost-effective.</li>
+            <li><strong>4. Radical Decarbonization:</strong> Meeting Net Zero targets requires transformative technologies like fuel switching, green hydrogen, and carbon capture beyond incremental improvements.</li>
+            <li><strong>5. Behavioral Systems:</strong> ISO 50001 and energy management systems ensure that technical gains are sustained through organizational culture, documented procedures, and continuous improvement.</li>
+        </ul>
+
+        <div style="margin-top:20px; padding:15px; border-top: 2px solid #ddd; font-size: 0.9em; color: #666;">
+            <strong>Real-World Framework:</strong> This challenge follows the <em>GHG Protocol Corporate Standard</em> for Scope 1 accounting and <em>ISO 50001:2018</em> for energy management systems. For detailed guidance, consult the official documentation at ghgprotocol.org and ISO standards.
+        </div>
+
+        <button class="btn" onclick="location.reload()">Start New Audit</button>
+    </div>
+
+</div>
+
+<!-- Pop-up Modal -->
+<div id="modal-overlay">
+    <div id="modal">
+        <h3 id="modal-title">Info</h3>
+        
+        <!-- Section for quantitative reduction feedback -->
+        <div id="modal-quant" class="quant-display" style="display:none;"></div>
+        
+        <p id="modal-body">Details...</p>
+        <button id="modal-close" class="btn" onclick="game.closeModal()">Next Step</button>
+    </div>
+</div>
+
+<script>
+const game = {
+    level: 0,
+    score: 0,
+    reduction: 0,
+    state: {},
+    
+    // Data for Level 1
+    l1Data: [
+        { id: 1, name: 'Diesel Generator', cat: 'stationary', icon: '⚙️' },
+        { id: 2, name: 'Company Delivery Van', cat: 'mobile', icon: '🚚' },
+        { id: 3, name: 'Cement Kiln Reaction', cat: 'process', icon: '🏭' },
+        { id: 4, name: 'AC Refrigerant Leak', cat: 'fugitive', icon: '❄️' }
+    ],
+    l1SelectedId: null,
+    l1Matches: 0,
+
+    init: function() {
+        this.updateHUD();
+        // Setup Level 1
+        const container = document.getElementById('l1-items');
+        this.l1Data.sort(() => Math.random() - 0.5); // Shuffle
+        this.l1Data.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'audit-item';
+            div.id = `l1-item-${item.id}`;
+            div.innerHTML = `<div style="font-size:2em">${item.icon}</div>${item.name}`;
+            div.onclick = () => this.l1SelectItem(item.id);
+            container.appendChild(div);
+        });
+    },
+
+    showScreen: function(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        window.scrollTo(0,0);
+    },
+
+    updateHUD: function() {
+        document.getElementById('score-display').innerText = this.score;
+        document.getElementById('reduction-display').innerText = this.reduction + '%';
+        const progress = (this.level / 5) * 100;
+        document.getElementById('progress-bar').style.width = progress + '%';
+    },
+
+    showSummary: function(reductionGain, title, body, nextLevel) {
+        document.getElementById('modal-title').innerText = title;
+        
+        // Show quantitative reduction
+        const quantDiv = document.getElementById('modal-quant');
+        if (reductionGain > 0) {
+            quantDiv.style.display = 'block';
+            quantDiv.innerText = `Reduction Achieved: -${reductionGain}%`;
+        } else {
+            quantDiv.style.display = 'none';
+        }
+
+        document.getElementById('modal-body').innerHTML = body;
+        
+        // Set up the close button to trigger next level
+        const closeBtn = document.getElementById('modal-close');
+        closeBtn.onclick = () => {
+            document.getElementById('modal-overlay').style.display = 'none';
+            if(nextLevel === 6) {
+                this.endGame();
+            } else {
+                this.startLevel(nextLevel);
+            }
+        };
+
+        document.getElementById('modal-overlay').style.display = 'flex';
+    },
+
+    closeModal: function() {
+        document.getElementById('modal-overlay').style.display = 'none';
+    },
+
+    startLevel: function(lvl) {
+        this.level = lvl;
+        this.updateHUD();
+        this.showScreen('screen-level' + lvl);
+    },
+
+    // --- LEVEL 1 LOGIC ---
+    l1SelectItem: function(id) {
+        document.querySelectorAll('.audit-item').forEach(el => el.classList.remove('selected'));
+        const el = document.getElementById(`l1-item-${id}`);
+        if(el.classList.contains('matched')) return;
+        this.l1SelectedId = id;
+        el.classList.add('selected');
+        document.getElementById('l1-feedback').innerText = "Select the category bucket on the right.";
+        document.getElementById('l1-feedback').style.color = "#555";
+    },
+
+    l1SelectBucket: function(cat) {
+        if(!this.l1SelectedId) {
+            document.getElementById('l1-feedback').innerText = "Please select an asset on the left first.";
+            document.getElementById('l1-feedback').style.color = "var(--danger)";
+            return;
+        }
+
+        const item = this.l1Data.find(i => i.id === this.l1SelectedId);
+        if(item.cat === cat) {
+            const el = document.getElementById(`l1-item-${this.l1SelectedId}`);
+            el.classList.remove('selected');
+            el.classList.add('matched');
+            el.innerHTML += " ✅";
+            this.l1Matches++;
+            this.score += 100;
+            this.l1SelectedId = null;
+            document.getElementById('l1-feedback').innerText = "Correct classification!";
+            document.getElementById('l1-feedback').style.color = "var(--primary)";
+            
+            if(this.l1Matches === 4) {
+                document.getElementById('btn-l1-next').disabled = false;
+            }
+        } else {
+            document.getElementById('l1-feedback').innerText = "Incorrect. Try again.";
+            document.getElementById('l1-feedback').style.color = "var(--danger)";
+            this.score -= 10;
+        }
+        this.updateHUD();
+    },
+
+    // --- LEVEL 2 LOGIC ---
+    l2UpdateSlider: function(val) {
+        const lambda = parseFloat(val);
+        const bar = document.getElementById('eff-bar');
+        const emitBar = document.getElementById('emit-bar');
+        const lambdaReadout = document.getElementById('lambda-readout');
+        const emitText = document.getElementById('emit-text');
+        const btn = document.getElementById('btn-l2-next');
+
+        lambdaReadout.innerText = `λ = ${lambda.toFixed(2)}`;
+
+        // Logic based on Lambda (Air/Fuel Ratio)
+        // 1.0 = Stoichiometric
+        // <1.0 = Rich (Excess Fuel) -> Soot, CO. Bad.
+        // >1.3 = Lean (Excess Air) -> Heat Loss.
+        // 1.05-1.15 = Optimal
+
+        let effWidth, emitWidth, emitColor, emitLabel;
+        
+        if (lambda < 1.0) {
+            // TOO RICH
+            effWidth = "40%"; // Poor combustion
+            emitWidth = "95%";
+            emitColor = "#D32F2F";
+            emitLabel = "High (Incomplete Combustion)";
+            btn.disabled = true;
+        } else if (lambda >= 1.0 && lambda <= 1.04) {
+             // Acceptable but risky
+            effWidth = "80%";
+            emitWidth = "40%";
+            emitColor = "orange";
+            emitLabel = "Moderate (Risk of CO)";
+            btn.disabled = true;
+        } else if (lambda >= 1.05 && lambda <= 1.15) {
+            // OPTIMAL
+            effWidth = "98%";
+            emitWidth = "15%";
+            emitColor = "#4CAF50";
+            emitLabel = "Minimal (Optimal)";
+            btn.disabled = false;
+        } else if (lambda > 1.15 && lambda <= 1.3) {
+            // OK but Lean
+            effWidth = "85%";
+            emitWidth = "30%";
+            emitColor = "orange";
+            emitLabel = "Moderate (Heat Loss)";
+            btn.disabled = false; // Acceptable but not great
+        } else {
+            // TOO LEAN
+            effWidth = "60%";
+            emitWidth = "70%";
+            emitColor = "#D32F2F";
+            emitLabel = "High (Significant Heat Loss)";
+            btn.disabled = true;
+        }
+
+        bar.style.width = effWidth;
+        bar.style.background = (lambda >= 1.05 && lambda <= 1.15) ? "#4CAF50" : "orange";
+        emitBar.style.width = emitWidth;
+        emitBar.style.background = emitColor;
+        emitText.innerText = emitLabel;
+    },
+
+    // --- LEVEL 3 LOGIC ---
+    l3LeaksFound: 0,
+    l3Scan: function(e) {
+        const container = document.getElementById('leak-canvas-container');
+        const scanner = document.getElementById('scanner');
+        const rect = container.getBoundingClientRect();
+        
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+        if(e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+            e.preventDefault();
+        }
+
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+
+        scanner.style.display = 'block';
+        scanner.style.left = x + 'px';
+        scanner.style.top = y + 'px';
+
+        for(let i=1; i<=5; i++) {
+            const leak = document.getElementById('leak'+i);
+            if(leak.style.display !== 'block') {
+                const leakX = parseInt(leak.style.left) + 15;
+                const leakY = parseInt(leak.style.top) + 15;
+                const dist = Math.sqrt(Math.pow(x-leakX, 2) + Math.pow(y-leakY, 2));
+                
+                if(dist < 30) {
+                    leak.style.display = 'block';
+                    this.l3LeaksFound++;
+                    this.score += 50;
+                    document.getElementById('leaks-found-count').innerText = this.l3LeaksFound;
+                    this.updateHUD();
+                    
+                    if(this.l3LeaksFound === 5) {
+                        document.getElementById('btn-l3-next').disabled = false;
+                    }
+                }
+            }
+        }
+    },
+
+    // --- LEVEL 4 LOGIC ---
+    l4Selection: [],
+    l4ToggleCard: function(el, type) {
+        if(this.l4Selection.includes(type)) {
+            this.l4Selection = this.l4Selection.filter(t => t !== type);
+            el.classList.remove('active');
+        } else {
+            if(this.l4Selection.length < 2) {
+                this.l4Selection.push(type);
+                el.classList.add('active');
+            }
+        }
+        document.getElementById('btn-l4-next').disabled = this.l4Selection.length !== 2;
+    },
+
+    // --- LEVEL 5 LOGIC ---
+    l5Choice: null,
+    l5Select: function(choice) {
+        this.l5Choice = choice;
+        document.querySelectorAll('.dilemma-opt').forEach(el => el.classList.remove('chosen'));
+        document.getElementById('opt-'+choice).classList.add('chosen');
+        document.getElementById('btn-l5-next').disabled = false;
+    },
+
+    finishLevel: function(lvl) {
+        let reductionGain = 0;
+        let summaryTitle = `Level ${lvl} Complete`;
+        let summaryText = "";
+
+        if(lvl === 1) {
+            reductionGain = 5;
+            summaryText = "<strong>Key Learning:</strong> Scope 1 covers all direct emissions from sources owned or controlled by your organization: stationary combustion (boilers, furnaces), mobile combustion (company vehicles), process emissions (chemical reactions), and fugitive emissions (unintentional leaks of refrigerants or gases).";
+        } 
+        else if (lvl === 2) {
+            // Check optimization quality
+            const lambda = parseFloat(document.getElementById('l2-slider').value);
+            if(lambda >= 1.05 && lambda <= 1.15) {
+                this.score += 150; reductionGain = 15;
+            } else {
+                this.score += 50; reductionGain = 5; // Sub-optimal pass
+            }
+            summaryText = "<strong>Key Learning:</strong> Targeting Significant Energy Users (SEUs) like boilers delivers the fastest Scope 1 wins. Proper air-to-fuel ratio optimization is low-cost and high-impact. Advanced controls and equipment upgrades compound these benefits.";
+        } 
+        else if (lvl === 3) {
+            reductionGain = 10;
+            summaryText = "<strong>Key Learning:</strong> Fugitive emissions from refrigerants (HFCs, HCFCs) and compressed air leaks are often invisible but highly potent. A single R-404A leak can have 3,922x the warming impact of CO₂. Regular leak detection and repair (LDAR) programs are essential. Undetected leaks grow 5% annually, compounding costs and emissions.";
+        } 
+        else if (lvl === 4) {
+            if(this.l4Selection.includes('fuel') && this.l4Selection.includes('electric')) {
+                this.score += 300; reductionGain = 40; 
+            } else if (this.l4Selection.includes('ccs')) {
+                this.score += 200; reductionGain = 30; 
+            } else if (this.l4Selection.includes('offset')) {
+                this.score += 50; reductionGain = 5; // Penalty
+                summaryText = "<strong>Warning:</strong> Offsets do not reduce your actual Scope 1 inventory!<br><br>";
+            } else {
+                this.score += 150; reductionGain = 20;
+            }
+            summaryText += "<strong>Key Learning:</strong> Hard-to-abate sectors require radical innovation. Fuel switching provides quick wins but limited reduction. Green hydrogen and CCS are capital-intensive but essential for deep decarbonization. Combining multiple strategies accelerates the Net Zero pathway while managing cost and technical risk.";
+        } 
+        else if (lvl === 5) {
+            if(this.l5Choice === 'integrated') {
+                this.score += 200; reductionGain = 10;
+            } else {
+                this.score += 100; reductionGain = 5;
+            }
+            summaryText = "<strong>Key Learning:</strong> Technical improvements alone are insufficient. Organizational culture and management systems determine whether efficiency gains persist or erode. ISO 50001 Energy Management Systems integrate top management commitment, employee engagement, documented procedures, and continuous measurement to lock in Scope 1 reductions for decades.";
+        }
+
+        this.reduction += reductionGain;
+        this.updateHUD();
+        
+        // Show Summary Modal instead of direct transition
+        const nextStep = (lvl === 5) ? 6 : lvl + 1;
+        this.showSummary(reductionGain, summaryTitle, summaryText, nextStep);
+    },
+
+    endGame: function() {
+        this.level = 6;
+        this.updateHUD();
+        this.showScreen('screen-end');
+        
+        const finalScore = document.getElementById('final-score');
+        const endMsg = document.getElementById('end-message');
+        
+        let current = 0;
+        const timer = setInterval(() => {
+            current += 10;
+            finalScore.innerText = current;
+            if(current >= this.score) {
+                clearInterval(timer);
+                finalScore.innerText = this.score;
+            }
+        }, 10);
+
+        let title = "Scope 1 Novice";
+        let msg = "You've started the journey, but there's more room for reduction.";
+        if(this.reduction > 75) {
+            title = "Net Zero Leader 🏆";
+            msg = "Outstanding! You identified sources, optimized systems, and implemented a sustainable management culture.";
+        } else if (this.reduction > 50) {
+            title = "Sustainability Officer";
+            msg = "Good work. You made significant cuts to emissions, though some efficiencies were left on the table.";
+        }
+
+        endMsg.innerHTML = `<h2>${title}</h2><p>${msg}</p><p>Total Emission Reduction: <strong>${this.reduction}%</strong></p>`;
+    }
+};
+
+// Start Game
+game.init();
+</script>
+</body>
+</html>
