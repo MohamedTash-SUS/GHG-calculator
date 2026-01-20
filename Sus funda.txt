@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sustainable Energy Management Assessment</title>
+    <!-- jsPDF Library -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2c7a7b; /* Teal/Eco Green */
+            --secondary-color: #2d3748; /* Dark Gray */
+            --bg-color: #f7fafc;
+            --card-bg: #ffffff;
+            --text-color: #1a202c;
+            --border-color: #e2e8f0;
+            --error-color: #e53e3e;
+            --success-color: #38a169;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .input-section {
+            background-color: #ebf8ff;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--secondary-color);
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .question-card {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .question-text {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--secondary-color);
+        }
+
+        .options-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+            font-weight: normal;
+        }
+
+        .option-label:hover {
+            background-color: #f0fff4;
+        }
+
+        input[type="radio"] {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .btn-submit {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+        }
+
+        .btn-submit:hover {
+            background-color: #234e52;
+        }
+
+        #result-area {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+            display: none;
+        }
+
+        .result-success {
+            background-color: #f0fff4;
+            border: 1px solid var(--success-color);
+            color: #22543d;
+        }
+
+        .result-fail {
+            background-color: #fff5f5;
+            border: 1px solid var(--error-color);
+            color: #742a2a;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Sustainable Energy Management</h1>
+        <div class="subtitle">Optimise Power, Cost & Efficiency</div>
+    </header>
+
+    <div class="input-section">
+        <div class="form-group">
+            <label for="fullName">Enter your full name for the certificate <span style="color:red">*</span></label>
+            <input type="text" id="fullName" placeholder="e.g. John Doe">
+        </div>
+    </div>
+
+    <form id="quizForm">
+        <!-- Q1 -->
+        <div class="question-card">
+            <div class="question-text">1. In a typical commercial building, what approximate percentage of the annual budget is generally consumed by energy costs?</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q1" value="A"> A. 10%</label>
+                <label class="option-label"><input type="radio" name="q1" value="B"> B. 75%</label>
+                <label class="option-label"><input type="radio" name="q1" value="C"> C. 30%</label>
+                <label class="option-label"><input type="radio" name="q1" value="D"> D. 50%</label>
+            </div>
+        </div>
+
+        <!-- Q2 -->
+        <div class="question-card">
+            <div class="question-text">2. According to the affinity laws, if a fan speed is reduced by 20%, what is the resulting impact on power consumption?</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q2" value="A"> A. It is reduced by approximately 49%.</label>
+                <label class="option-label"><input type="radio" name="q2" value="B"> B. It is reduced by approximately 36%.</label>
+                <label class="option-label"><input type="radio" name="q2" value="C"> C. It is reduced by approximately 80%.</label>
+                <label class="option-label"><input type="radio" name="q2" value="D"> D. It is reduced by approximately 20%.</label>
+            </div>
+        </div>
+
+        <!-- Q3 -->
+        <div class="question-card">
+            <div class="question-text">3. When utilizing the Heat Loss Method for boiler efficiency, why is it often considered more accurate than the Direct Method?</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q3" value="A"> A. Errors in measuring small losses have a lower impact on the final efficiency calculation.</label>
+                <label class="option-label"><input type="radio" name="q3" value="B"> B. It ignores the heating value of the fuel.</label>
+                <label class="option-label"><input type="radio" name="q3" value="C"> C. It uses fewer sensors and instrumentation.</label>
+                <label class="option-label"><input type="radio" name="q3" value="D"> D. It calculates the total energy produced rather than energy wasted.</label>
+            </div>
+        </div>
+
+        <!-- Q4 -->
+        <div class="question-card">
+            <div class="question-text">4. In Pinch Technology, what does the overlap between the Hot Composite Curve and the Cold Composite Curve represent?</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q4" value="A"> A. The maximum possible process-to-process heat recovery.</label>
+                <label class="option-label"><input type="radio" name="q4" value="B"> B. The thermodynamic bottleneck of the plant.</label>
+                <label class="option-label"><input type="radio" name="q4" value="C"> C. The total energy penalty of the system.</label>
+                <label class="option-label"><input type="radio" name="q4" value="D"> D. The minimum external cooling required.</label>
+            </div>
+        </div>
+
+        <!-- Q5 -->
+        <div class="question-card">
+            <div class="question-text">5. What is the primary thermodynamic consequence of transferring process heat across the 'pinch' in a heat exchanger network?</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q5" value="A"> A. The system achieves its minimum energy target more quickly.</label>
+                <label class="option-label"><input type="radio" name="q5" value="B"> B. The thermal duty of the reactor is reduced.</label>
+                <label class="option-label"><input type="radio" name="q5" value="C"> C. There is a one-for-one increase in both hot and cold utility requirements.</label>
+                <label class="option-label"><input type="radio" name="q5" value="D"> D. The heat exchanger becomes physically smaller.</label>
+            </div>
+        </div>
+
+        <!-- Q6 -->
+        <div class="question-card">
+            <div class="question-text">6. For a typical industrial electric motor, approximately what percentage of its total life cycle cost is attributed to the energy it consumes?</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q6" value="A"> A. 15%</label>
+                <label class="option-label"><input type="radio" name="q6" value="B"> B. 96%</label>
+                <label class="option-label"><input type="radio" name="q6" value="C"> C. 75%</label>
+                <label class="option-label"><input type="radio" name="q6" value="D"> D. 50%</label>
+            </div>
+        </div>
+
+        <!-- Q7 -->
+        <div class="question-card">
+            <div class="question-text">7. Which electrical metric is defined as the ratio of real power (kW) to apparent power (kVA)?</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q7" value="A"> A. Load Factor</label>
+                <label class="option-label"><input type="radio" name="q7" value="B"> B. Reactive Power</label>
+                <label class="option-label"><input type="radio" name="q7" value="C"> C. Power Factor</label>
+                <label class="option-label"><input type="radio" name="q7" value="D"> D. Harmonic Distortion</label>
+            </div>
+        </div>
+
+        <!-- Q8 -->
+        <div class="question-card">
+            <div class="question-text">8. What is 'artificial demand' in the context of a compressed air system?</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q8" value="A"> A. The power used by the compressor during its unloaded state.</label>
+                <label class="option-label"><input type="radio" name="q8" value="B"> B. Excess air consumption caused by operating the system at a higher pressure than necessary.</label>
+                <label class="option-label"><input type="radio" name="q8" value="C"> C. The volume of air lost through small holes in the distribution piping.</label>
+                <label class="option-label"><input type="radio" name="q8" value="D"> D. The air required to operate pneumatic tools at their minimum pressure.</label>
+            </div>
+        </div>
+
+        <!-- Q9 -->
+        <div class="question-card">
+            <div class="question-text">9. How does a 3% voltage imbalance affect the heat generated in the resistive windings of an electric motor?</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q9" value="A"> A. It increases heat by 6%.</label>
+                <label class="option-label"><input type="radio" name="q9" value="B"> B. It increases heat by 3%.</label>
+                <label class="option-label"><input type="radio" name="q9" value="C"> C. It increases heat by 18%.</label>
+                <label class="option-label"><input type="radio" name="q9" value="D"> D. It increases heat by 9%.</label>
+            </div>
+        </div>
+
+        <!-- Q10 -->
+        <div class="question-card">
+            <div class="question-text">10. In lighting energy management, what is the 'Efficacy' of a light source?</div>
+            <div class="options-group">
+                <label class="option-label"><input type="radio" name="q10" value="A"> A. The color rendering index (CRI) of the bulb.</label>
+                <label class="option-label"><input type="radio" name="q10" value="B"> B. The total amount of light hitting a workspace in Lux.</label>
+                <label class="option-label"><input type="radio" name="q10" value="C"> C. The ratio of light output (lumens) to the power consumed (watts).</label>
+                <label class="option-label"><input type="radio" name="q10" value="D"> D. The percentage of light lost over the life of a lamp.</label>
+            </div>
+        </div>
+
+        <button type="button" class="btn-submit" onclick="submitQuiz()">Submit Answers</button>
+    </form>
+
+    <div id="result-area"></div>
+</div>
+
+<script>
+    const correctAnswers = {
+        q1: 'C',
+        q2: 'A',
+        q3: 'A',
+        q4: 'A',
+        q5: 'C',
+        q6: 'B',
+        q7: 'C',
+        q8: 'B',
+        q9: 'C',
+        q10: 'C'
+    };
+
+    function submitQuiz() {
+        const fullName = document.getElementById('fullName').value.trim();
+        const resultArea = document.getElementById('result-area');
+        
+        // 1. Validation: Check Name
+        if (!fullName) {
+            alert("Please enter your full name before submitting.");
+            document.getElementById('fullName').focus();
+            return;
+        }
+
+        // 2. Validation: Check all questions answered
+        let allAnswered = true;
+        let userAnswers = {};
+        
+        for (let i = 1; i <= 10; i++) {
+            const radios = document.getElementsByName('q' + i);
+            let answered = false;
+            for (const radio of radios) {
+                if (radio.checked) {
+                    answered = true;
+                    userAnswers['q' + i] = radio.value;
+                    break;
+                }
+            }
+            if (!answered) {
+                allAnswered = false;
+            }
+        }
+
+        if (!allAnswered) {
+            alert("Please answer all 10 questions before submitting.");
+            return;
+        }
+
+        // 3. Calculate Score
+        let score = 0;
+        for (let i = 1; i <= 10; i++) {
+            const qKey = 'q' + i;
+            if (userAnswers[qKey] === correctAnswers[qKey]) {
+                score++;
+            }
+        }
+
+        // 4. Handle Pass/Fail logic
+        resultArea.style.display = 'block';
+        if (score >= 7) {
+            resultArea.className = 'result-success';
+            resultArea.innerHTML = `
+                <h3>Congratulations, ${fullName}!</h3>
+                <p>You scored <strong>${score}/10</strong>.</p>
+                <p>You have passed the assessment. Your certificate is downloading automatically.</p>
+            `;
+            generatePDF(fullName);
+        } else {
+            resultArea.className = 'result-fail';
+            resultArea.innerHTML = `
+                <h3>Assessment Failed</h3>
+                <p>You scored <strong>${score}/10</strong>.</p>
+                <p>You need at least 7 correct answers and your name to receive the certificate. Please try again.</p>
+            `;
+        }
+        
+        // Scroll to bottom
+        resultArea.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function generatePDF(name) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        const width = doc.internal.pageSize.getWidth();
+        const height = doc.internal.pageSize.getHeight();
+        const centerX = width / 2;
+
+        // --- Design Elements ---
+        
+        // Border
+        doc.setDrawColor(44, 122, 123); // Teal
+        doc.setLineWidth(1.5);
+        doc.rect(10, 10, width - 20, height - 20);
+        
+        // Inner thin border
+        doc.setLineWidth(0.5);
+        doc.rect(15, 15, width - 30, height - 30);
+
+        // Header
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(30);
+        doc.setTextColor(44, 122, 123); // Teal
+        doc.text("Certificate of Completion", centerX, 40, { align: "center" });
+
+        // Course Title
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(18);
+        doc.setTextColor(60, 60, 60);
+        doc.text("Sustainable Energy Management", centerX, 60, { align: "center" });
+        doc.setFontSize(14);
+        doc.text("Optimise Power, Cost & Efficiency", centerX, 68, { align: "center" });
+
+        // "Certifies that"
+        doc.setFontSize(12);
+        doc.setTextColor(100, 100, 100);
+        doc.text("This certifies that", centerX, 85, { align: "center" });
+
+        // User Name
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(28);
+        doc.setTextColor(0, 0, 0);
+        doc.text(name, centerX, 105, { align: "center" });
+        
+        // Underline Name
+        const nameWidth = doc.getTextWidth(name);
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
+        doc.line(centerX - (nameWidth/2) - 5, 108, centerX + (nameWidth/2) + 5, 108);
+
+        // Body Text
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
+        doc.setTextColor(60, 60, 60);
+        const splitText = doc.splitTextToSize("has successfully demonstrated knowledge in sustainable energy management by achieving a passing score on the assessment quiz.", 160);
+        doc.text(splitText, centerX, 125, { align: "center" });
+
+        // Date
+        const today = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        doc.text(`Date: ${today}`, centerX, 145, { align: "center" });
+
+        // Signature Section
+        const sigY = 170;
+        
+        doc.setDrawColor(100, 100, 100);
+        doc.line(centerX - 40, sigY, centerX + 40, sigY); // Signature line
+        
+        doc.setFont("times", "italic"); // Cursive-ish look
+        doc.setFontSize(20);
+        doc.setTextColor(0, 0, 0);
+        doc.text("Dr. Mohamed Tash", centerX, sigY - 5, { align: "center" });
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text("Decarbonization and Sustainability Expert", centerX, sigY + 6, { align: "center" });
+        doc.text("Signed", centerX, sigY + 12, { align: "center" });
+
+        // Footer decorative text
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text("Certificate ID: " + Math.random().toString(36).substr(2, 9).toUpperCase(), 20, height - 20);
+
+        // Download
+        const safeName = name.replace(/[^a-z0-9]/gi, '_').replace(/_{2,}/g, '_');
+        doc.save(`Certificate_${safeName}.pdf`);
+    }
+</script>
+
+</body>
+</html>
