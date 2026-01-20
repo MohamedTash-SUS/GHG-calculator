@@ -139,6 +139,11 @@
         .btn-submit:hover {
             background-color: #234e52;
         }
+        
+        .btn-submit:disabled {
+            background-color: #cbd5e0;
+            cursor: not-allowed;
+        }
 
         #result-area {
             margin-top: 30px;
@@ -146,6 +151,14 @@
             border-radius: 6px;
             text-align: center;
             display: none;
+        }
+        
+        #system-message {
+            margin-top: 15px; 
+            text-align: center; 
+            font-weight: bold;
+            font-size: 0.9rem;
+            min-height: 24px;
         }
 
         .result-success {
@@ -297,6 +310,7 @@
         </div>
 
         <button type="button" class="btn-submit" onclick="submitQuiz()">Submit Answers</button>
+        <div id="system-message"></div>
     </form>
 
     <div id="result-area"></div>
@@ -316,9 +330,26 @@
         q10: 'C'
     };
 
+    // Check if library loaded on page load
+    window.onload = function() {
+        const statusDiv = document.getElementById('system-message');
+        const submitBtn = document.querySelector('.btn-submit');
+        
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            statusDiv.style.color = '#e53e3e'; // Red
+            statusDiv.innerHTML = "⚠️ Error: The PDF generator library could not load. Please check your internet connection or ad-blockers and refresh the page.";
+            submitBtn.disabled = true;
+            submitBtn.title = "Library failed to load";
+        }
+    };
+
     function submitQuiz() {
         const fullName = document.getElementById('fullName').value.trim();
         const resultArea = document.getElementById('result-area');
+        const statusDiv = document.getElementById('system-message');
+        
+        // Reset Status
+        statusDiv.innerHTML = "";
         
         // 1. Validation: Check Name
         if (!fullName) {
@@ -367,7 +398,7 @@
             resultArea.innerHTML = `
                 <h3>Congratulations, ${fullName}!</h3>
                 <p>You scored <strong>${score}/10</strong>.</p>
-                <p>You have passed the assessment. Your certificate is downloading automatically.</p>
+                <p>You have passed the assessment.</p>
             `;
             generatePDF(fullName);
         } else {
@@ -384,99 +415,118 @@
     }
 
     function generatePDF(name) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({
-            orientation: 'landscape',
-            unit: 'mm',
-            format: 'a4'
-        });
+        const statusDiv = document.getElementById('system-message');
+        statusDiv.style.color = 'blue';
+        statusDiv.innerHTML = "Generating Certificate... Please wait.";
 
-        const width = doc.internal.pageSize.getWidth();
-        const height = doc.internal.pageSize.getHeight();
-        const centerX = width / 2;
+        try {
+            // Check library again
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                throw new Error("PDF Library not found.");
+            }
 
-        // --- Design Elements ---
-        
-        // Border
-        doc.setDrawColor(44, 122, 123); // Teal
-        doc.setLineWidth(1.5);
-        doc.rect(10, 10, width - 20, height - 20);
-        
-        // Inner thin border
-        doc.setLineWidth(0.5);
-        doc.rect(15, 15, width - 30, height - 30);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
 
-        // Header
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(30);
-        doc.setTextColor(44, 122, 123); // Teal
-        doc.text("Certificate of Completion", centerX, 40, { align: "center" });
+            const width = doc.internal.pageSize.getWidth();
+            const height = doc.internal.pageSize.getHeight();
+            const centerX = width / 2;
 
-        // Course Title
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(18);
-        doc.setTextColor(60, 60, 60);
-        doc.text("Sustainable Energy Management", centerX, 60, { align: "center" });
-        doc.setFontSize(14);
-        doc.text("Optimise Power, Cost & Efficiency", centerX, 68, { align: "center" });
+            // --- Design Elements ---
+            
+            // Border
+            doc.setDrawColor(44, 122, 123); // Teal
+            doc.setLineWidth(1.5);
+            doc.rect(10, 10, width - 20, height - 20);
+            
+            // Inner thin border
+            doc.setLineWidth(0.5);
+            doc.rect(15, 15, width - 30, height - 30);
 
-        // "Certifies that"
-        doc.setFontSize(12);
-        doc.setTextColor(100, 100, 100);
-        doc.text("This certifies that", centerX, 85, { align: "center" });
+            // Header
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(30);
+            doc.setTextColor(44, 122, 123); // Teal
+            doc.text("Certificate of Completion", centerX, 40, { align: "center" });
 
-        // User Name
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(28);
-        doc.setTextColor(0, 0, 0);
-        doc.text(name, centerX, 105, { align: "center" });
-        
-        // Underline Name
-        const nameWidth = doc.getTextWidth(name);
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.5);
-        doc.line(centerX - (nameWidth/2) - 5, 108, centerX + (nameWidth/2) + 5, 108);
+            // Course Title
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(18);
+            doc.setTextColor(60, 60, 60);
+            doc.text("Sustainable Energy Management", centerX, 60, { align: "center" });
+            doc.setFontSize(14);
+            doc.text("Optimise Power, Cost & Efficiency", centerX, 68, { align: "center" });
 
-        // Body Text
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(12);
-        doc.setTextColor(60, 60, 60);
-        const splitText = doc.splitTextToSize("has successfully demonstrated knowledge in sustainable energy management by achieving a passing score on the assessment quiz.", 160);
-        doc.text(splitText, centerX, 125, { align: "center" });
+            // "Certifies that"
+            doc.setFontSize(12);
+            doc.setTextColor(100, 100, 100);
+            doc.text("This certifies that", centerX, 85, { align: "center" });
 
-        // Date
-        const today = new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-        doc.text(`Date: ${today}`, centerX, 145, { align: "center" });
+            // User Name
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(28);
+            doc.setTextColor(0, 0, 0);
+            doc.text(name, centerX, 105, { align: "center" });
+            
+            // Underline Name
+            const nameWidth = doc.getTextWidth(name);
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.5);
+            doc.line(centerX - (nameWidth/2) - 5, 108, centerX + (nameWidth/2) + 5, 108);
 
-        // Signature Section
-        const sigY = 170;
-        
-        doc.setDrawColor(100, 100, 100);
-        doc.line(centerX - 40, sigY, centerX + 40, sigY); // Signature line
-        
-        doc.setFont("times", "italic"); // Cursive-ish look
-        doc.setFontSize(20);
-        doc.setTextColor(0, 0, 0);
-        doc.text("Dr. Mohamed Tash", centerX, sigY - 5, { align: "center" });
-        
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text("Decarbonization and Sustainability Expert", centerX, sigY + 6, { align: "center" });
-        doc.text("Signed", centerX, sigY + 12, { align: "center" });
+            // Body Text
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(12);
+            doc.setTextColor(60, 60, 60);
+            const splitText = doc.splitTextToSize("has successfully demonstrated knowledge in sustainable energy management by achieving a passing score on the assessment quiz.", 160);
+            doc.text(splitText, centerX, 125, { align: "center" });
 
-        // Footer decorative text
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text("Certificate ID: " + Math.random().toString(36).substr(2, 9).toUpperCase(), 20, height - 20);
+            // Date
+            const today = new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            doc.text(`Date: ${today}`, centerX, 145, { align: "center" });
 
-        // Download
-        const safeName = name.replace(/[^a-z0-9]/gi, '_').replace(/_{2,}/g, '_');
-        doc.save(`Certificate_${safeName}.pdf`);
+            // Signature Section
+            const sigY = 170;
+            
+            doc.setDrawColor(100, 100, 100);
+            doc.line(centerX - 40, sigY, centerX + 40, sigY); // Signature line
+            
+            doc.setFont("times", "italic"); // Cursive-ish look
+            doc.setFontSize(20);
+            doc.setTextColor(0, 0, 0);
+            doc.text("Dr. Mohamed Tash", centerX, sigY - 5, { align: "center" });
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Decarbonization and Sustainability Expert", centerX, sigY + 6, { align: "center" });
+            doc.text("Signed", centerX, sigY + 12, { align: "center" });
+
+            // Footer decorative text
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text("Certificate ID: " + Math.random().toString(36).substr(2, 9).toUpperCase(), 20, height - 20);
+
+            // Download
+            const safeName = name.replace(/[^a-z0-9]/gi, '_').replace(/_{2,}/g, '_');
+            doc.save(`Certificate_${safeName}.pdf`);
+            
+            statusDiv.style.color = '#38a169'; // Green
+            statusDiv.innerHTML = "Certificate downloaded successfully! Check your downloads folder.";
+            
+        } catch (err) {
+            console.error(err);
+            statusDiv.style.color = '#e53e3e';
+            statusDiv.innerHTML = "Error generating PDF: " + err.message;
+        }
     }
 </script>
 
