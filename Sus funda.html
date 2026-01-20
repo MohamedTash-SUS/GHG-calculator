@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sustainable Energy Management Assessment</title>
-    <!-- jsPDF Library -->
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <!-- jsPDF Library - switched to cdnjs for better reliability -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <style>
         :root {
@@ -335,12 +335,15 @@
         const statusDiv = document.getElementById('system-message');
         const submitBtn = document.querySelector('.btn-submit');
         
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-            statusDiv.style.color = '#e53e3e'; // Red
-            statusDiv.innerHTML = "⚠️ Error: The PDF generator library could not load. Please check your internet connection or ad-blockers and refresh the page.";
-            submitBtn.disabled = true;
-            submitBtn.title = "Library failed to load";
-        }
+        // Wait slightly to ensure script parsing complete
+        setTimeout(() => {
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                statusDiv.style.color = '#e53e3e'; // Red
+                statusDiv.innerHTML = "⚠️ Error: The PDF generator library could not load. Please check your internet connection or ad-blockers and refresh the page.";
+                submitBtn.disabled = true;
+                submitBtn.title = "Library failed to load";
+            }
+        }, 500);
     };
 
     function submitQuiz() {
