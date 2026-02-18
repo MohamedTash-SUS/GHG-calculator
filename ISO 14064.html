@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO 14064-1:2018 Interactive Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom Scrollbar for cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .tab-active {
+            border-bottom: 3px solid #E07A5F;
+            color: #E07A5F;
+            font-weight: 700;
+        }
+        .tab-inactive {
+            color: #64748b;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-inactive:hover {
+            color: #334155;
+            border-bottom: 3px solid #cbd5e1;
+        }
+
+        /* Card Hover Effects */
+        .hover-card {
+            transition: all 0.3s ease;
+        }
+        .hover-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+    <!-- Chosen Palette: Warm Neutrals & Earth Tones (Cream #FDFCF8, Sage #84A98C, Terracotta #E07A5F, Dark Grey #333333) -->
+    <!-- Application Structure Plan: 
+         The app is designed as a "Learning Module" dashboard.
+         1. Header: Global navigation context.
+         2. Navigation Bar: Tabs separating the report into 5 logical modules:
+            - Overview: Context, Scope, Terms (Clauses 1-3).
+            - Principles: The 5 Core Axioms (Clause 4).
+            - Boundaries: The "Heart" of the standard - Organization & Reporting Categories (Clause 5).
+            - Methodology: Quantification, GWP, Mitigation (Clauses 6-7).
+            - Compliance: QA, Reporting, Verification (Clauses 8-10, Annexes).
+         3. Dynamic Content Area: Changes based on tab selection.
+            - Uses interactive cards for principles.
+            - Uses interactive charts for boundaries to visualize abstract concepts like "Equity Share" vs "Control".
+            - Uses a calculator simulation for GWP to reinforce the math.
+         4. Justification: This structure breaks dense technical text into digestible, thematic chunks, allowing users to focus on specific aspects (e.g., "How do I categorize emissions?") without losing the broader context.
+    -->
+    <!-- Visualization & Content Choices:
+         1. Interactive Donut Chart (Boundaries): Used to visualize the 6 New Categories vs the old 3 Scopes concept. User clicks slices to see definitions. Goal: Clarify the complex categorization structure.
+         2. Interactive Bar Chart (Org Boundaries): Visualizes the difference between "Control" and "Equity Share" approaches. Goal: Demonstrate the financial implication of the boundary choice.
+         3. GWP Calculator (Methodology): Simple input/output tool. Goal: Reinforce the concept of CO2 equivalence and GWP values.
+         4. Principles Grid: Clickable cards. Goal: Make the 5 abstract axioms concrete and memorable.
+         5. Checklists: For Reporting requirements. Goal: Provide a practical tool for compliance checking.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-[#FDFCF8] text-[#333333] font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">🌍</span>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-800">ISO 14064-1:2018 <span class="text-[#E07A5F] font-normal">Interactive Guide</span></h1>
+                </div>
+                <div class="hidden md:flex flex-col items-end text-right">
+                    <span class="text-xs text-slate-400 italic mb-1">Organizational Carbon Accounting Framework</span>
+                    <div class="flex flex-col">
+                        <span class="text-sm font-bold text-slate-700">Dr. Mohamed Tash</span>
+                        <a href="https://www.linkedin.com/in/drtash" target="_blank" class="text-xs text-[#E07A5F] hover:underline flex items-center justify-end">
+                            <span class="mr-1">🔗</span> linkedin.com/in/drtash
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <nav class="bg-[#FDFCF8] border-b border-slate-200 overflow-x-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8" id="nav-container">
+                <button onclick="switchTab('overview')" class="nav-tab tab-active py-4 px-1 text-sm font-medium whitespace-nowrap" id="tab-overview">1. Overview & Scope</button>
+                <button onclick="switchTab('principles')" class="nav-tab tab-inactive py-4 px-1 text-sm font-medium whitespace-nowrap" id="tab-principles">2. Principles</button>
+                <button onclick="switchTab('boundaries')" class="nav-tab tab-inactive py-4 px-1 text-sm font-medium whitespace-nowrap" id="tab-boundaries">3. Boundaries (The 6 Cats)</button>
+                <button onclick="switchTab('methodology')" class="nav-tab tab-inactive py-4 px-1 text-sm font-medium whitespace-nowrap" id="tab-methodology">4. Quantification</button>
+                <button onclick="switchTab('compliance')" class="nav-tab tab-inactive py-4 px-1 text-sm font-medium whitespace-nowrap" id="tab-compliance">5. Reporting & Verification</button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- VIEW: OVERVIEW -->
+        <section id="view-overview" class="block animate-fade-in">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-xl shadow-sm p-8 mb-8 border-l-4 border-[#84A98C]">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-800">Introduction to the Standard</h2>
+                    <p class="text-lg text-slate-600 mb-6">
+                        ISO 14064-1:2018 specifies principles and requirements at the <span class="font-semibold text-[#E07A5F]">organization level</span> for quantification and reporting of greenhouse gas (GHG) emissions and removals. 
+                    </p>
+                    <p class="text-slate-600 mb-4">
+                        It provides a rigorous framework for carbon accounting that is "GHG programme neutral," meaning it functions independently of specific regulatory schemes but ensures data integrity for any use case.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-slate-700 mb-2">Key Application</h3>
+                            <p class="text-sm text-slate-500">Design, development, management, reporting, and verification of an organization's GHG inventory.</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-slate-700 mb-2">Distinct From</h3>
+                            <p class="text-sm text-slate-500">Project-level (ISO 14064-2) and Product-level (ISO 14067) accounting.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-xl font-bold mb-4 border-b pb-2">Clause 3: Critical Definitions</h3>
+                        <ul class="space-y-4">
+                            <li class="cursor-pointer hover:bg-slate-50 p-2 rounded transition" onclick="toggleDef('def-1')">
+                                <div class="flex justify-between items-center font-semibold text-slate-700">
+                                    <span>Direct vs. Indirect</span>
+                                    <span class="text-[#E07A5F]">▼</span>
+                                </div>
+                                <div id="def-1" class="hidden mt-2 text-sm text-slate-600 pl-4 border-l-2 border-slate-300">
+                                    <strong>Direct:</strong> Sources owned or controlled by the organization.<br>
+                                    <strong>Indirect:</strong> Consequences of operations, but occur at sources owned by another entity.
+                                </div>
+                            </li>
+                            <li class="cursor-pointer hover:bg-slate-50 p-2 rounded transition" onclick="toggleDef('def-2')">
+                                <div class="flex justify-between items-center font-semibold text-slate-700">
+                                    <span>Biogenic Carbon</span>
+                                    <span class="text-[#E07A5F]">▼</span>
+                                </div>
+                                <div id="def-2" class="hidden mt-2 text-sm text-slate-600 pl-4 border-l-2 border-slate-300">
+                                    Carbon derived from biomass. It requires distinct accounting treatment from fossil carbon (See Annex D).
+                                </div>
+                            </li>
+                            <li class="cursor-pointer hover:bg-slate-50 p-2 rounded transition" onclick="toggleDef('def-3')">
+                                <div class="flex justify-between items-center font-semibold text-slate-700">
+                                    <span>GWP (Global Warming Potential)</span>
+                                    <span class="text-[#E07A5F]">▼</span>
+                                </div>
+                                <div id="def-3" class="hidden mt-2 text-sm text-slate-600 pl-4 border-l-2 border-slate-300">
+                                    Index measuring radiative forcing of a GHG relative to CO₂. Must use latest IPCC 100-year values.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-[#EFF4F1] rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
+                        <div class="text-6xl mb-4">📜</div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">Normative References</h3>
+                        <p class="text-slate-600 mb-4">There are <span class="font-bold text-red-500">NO</span> normative references.</p>
+                        <p class="text-sm text-slate-500">
+                            ISO 14064-1 is a standalone document for compliance. You do not need to purchase other standards to claim conformity.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: PRINCIPLES -->
+        <section id="view-principles" class="hidden animate-fade-in">
+            <div class="max-w-6xl mx-auto">
+                <div class="mb-8 text-center">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-4">Clause 4: The 5 Principles</h2>
+                    <p class="max-w-2xl mx-auto text-slate-600">
+                        These five axioms govern the inventory process. In situations where the standard provides flexibility, these principles guide the decision-making process to ensure a "true and fair account."
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Relevance -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm hover-card border-t-4 border-[#E07A5F]">
+                        <div class="text-3xl mb-4">🎯</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">1. Relevance</h3>
+                        <p class="text-slate-600">Selecting sources, data, methodologies, and assumptions appropriate to the needs of the intended user.</p>
+                    </div>
+
+                    <!-- Completeness -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm hover-card border-t-4 border-[#84A98C]">
+                        <div class="text-3xl mb-4">📦</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">2. Completeness</h3>
+                        <p class="text-slate-600">Including all relevant GHG emissions and removals. Any exclusions must be justified and disclosed.</p>
+                    </div>
+
+                    <!-- Consistency -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm hover-card border-t-4 border-[#5C7C8A]">
+                        <div class="text-3xl mb-4">⚖️</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">3. Consistency</h3>
+                        <p class="text-slate-600">Enabling meaningful comparisons in GHG-related information over time. Same methods, same boundaries.</p>
+                    </div>
+
+                    <!-- Accuracy -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm hover-card border-t-4 border-slate-600 md:col-span-1 md:col-start-1 md:ml-auto">
+                        <div class="text-3xl mb-4">📏</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">4. Accuracy</h3>
+                        <p class="text-slate-600">Reducing bias and uncertainties as far as is practical. Data should be precise enough for decision making.</p>
+                    </div>
+
+                    <!-- Transparency -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm hover-card border-t-4 border-yellow-500 md:col-span-1 md:col-start-2 md:mr-auto">
+                        <div class="text-3xl mb-4">🔍</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">5. Transparency</h3>
+                        <p class="text-slate-600">Disclosing sufficient information to allow intended users to make decisions with reasonable confidence.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: BOUNDARIES -->
+        <section id="view-boundaries" class="hidden animate-fade-in">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">Clause 5: Inventory Boundaries</h2>
+                    <p class="text-slate-600">Defining "what counts" is the most critical step. This is divided into Organizational Boundaries (who are we?) and Reporting Boundaries (what do we emit?).</p>
+                </div>
+
+                <!-- 5.1 Organizational Boundaries -->
+                <div class="bg-white rounded-xl shadow-sm p-8 mb-12">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-6 border-b pb-2">5.1 Organizational Boundaries: Consolidation Approach</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                        <div class="lg:col-span-1 space-y-4">
+                            <p class="text-slate-600 text-sm">
+                                When you own a portion of another entity, how much of their emissions do you claim? Use the slider to see the difference between the <strong>Control Approach</strong> and <strong>Equity Share Approach</strong>.
+                            </p>
+                            
+                            <div class="bg-slate-50 p-4 rounded-lg">
+                                <label class="block text-sm font-bold text-slate-700 mb-2">Your Equity Share: <span id="equity-val" class="text-[#E07A5F]">30</span>%</label>
+                                <input type="range" min="0" max="100" value="30" class="w-full accent-[#E07A5F]" id="equity-slider">
+                            </div>
+
+                            <div class="bg-slate-50 p-4 rounded-lg">
+                                <label class="block text-sm font-bold text-slate-700 mb-2">Do you have Financial/Operational Control?</label>
+                                <div class="flex items-center space-x-4">
+                                    <button onclick="setControl(true)" id="btn-control-yes" class="px-3 py-1 bg-slate-200 rounded hover:bg-slate-300 text-sm">Yes</button>
+                                    <button onclick="setControl(false)" id="btn-control-no" class="px-3 py-1 bg-[#84A98C] text-white rounded text-sm shadow-inner">No</button>
+                                </div>
+                            </div>
+                            
+                            <div class="text-xs text-slate-500 mt-2">
+                                *Note: Control is usually >50% equity or contractual, but simplified here for demonstration.
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-2">
+                            <div class="chart-container">
+                                <canvas id="orgBoundaryChart"></canvas>
+                            </div>
+                            <div class="mt-4 text-center text-sm text-slate-600" id="org-explanation">
+                                Under Equity Share, you report 30%. Under Control Approach, you report 0%.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5.2 Reporting Boundaries -->
+                <div class="bg-white rounded-xl shadow-sm p-8">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-6 border-b pb-2">5.2 Reporting Boundaries: The 6 Categories</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1">
+                            <p class="text-slate-600 mb-4">
+                                The 2018 edition replaced "Scopes" with <strong>6 Categories</strong> to encourage more comprehensive reporting of indirect emissions.
+                            </p>
+                            <p class="text-slate-600 text-sm mb-4">
+                                Interact with the chart to explore each category. This hypothetical inventory shows a typical service-based organization.
+                            </p>
+                            <div id="category-details" class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <h4 class="font-bold text-[#E07A5F] mb-2" id="cat-title">Hover over the chart</h4>
+                                <p class="text-sm text-slate-600" id="cat-desc">Select a segment to see the definition and requirements for that category.</p>
+                            </div>
+                            
+                            <!-- Significance Criteria Highlight -->
+                            <div class="mt-6 p-4 bg-[#EFF4F1] rounded border-l-4 border-[#84A98C]">
+                                <h4 class="font-bold text-sm text-slate-800">New Concept: Significance</h4>
+                                <p class="text-xs text-slate-600 mt-1">
+                                    You must establish criteria (magnitude, influence, risk) to evaluate indirect emissions and report all those deemed <strong>Significant</strong>.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 flex justify-center items-center">
+                            <div class="chart-container">
+                                <canvas id="categoriesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: METHODOLOGY -->
+        <section id="view-methodology" class="hidden animate-fade-in">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">Clause 6 & 7: Methodology</h2>
+                    <p class="text-slate-600">From identifying sources to calculating CO₂e and managing mitigation.</p>
+                </div>
+
+                <!-- Timeline / Steps -->
+                <div class="relative mb-12">
+                    <div class="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-slate-200"></div>
+                    
+                    <!-- Step 1 -->
+                    <div class="relative z-10 flex items-center justify-between mb-8 w-full">
+                        <div class="w-5/12 text-right pr-8">
+                            <h3 class="font-bold text-lg text-slate-800">1. Identification</h3>
+                            <p class="text-sm text-slate-600">Identify all relevant GHG sources and sinks within the reporting boundary.</p>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-[#E07A5F] text-white flex items-center justify-center font-bold">1</div>
+                        <div class="w-5/12 pl-8"></div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="relative z-10 flex items-center justify-between mb-8 w-full">
+                        <div class="w-5/12"></div>
+                        <div class="w-8 h-8 rounded-full bg-[#E07A5F] text-white flex items-center justify-center font-bold">2</div>
+                        <div class="w-5/12 pl-8 text-left">
+                            <h3 class="font-bold text-lg text-slate-800">2. Selection of Approach</h3>
+                            <p class="text-sm text-slate-600">Choose measurement or modeling (e.g., Activity Data × Emission Factor) to minimize uncertainty.</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="relative z-10 flex items-center justify-between mb-8 w-full">
+                        <div class="w-5/12 text-right pr-8">
+                            <h3 class="font-bold text-lg text-slate-800">3. Calculation (GWP)</h3>
+                            <p class="text-sm text-slate-600">Calculate emissions in tonnes of CO₂e using latest IPCC 100-year GWP values.</p>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-[#E07A5F] text-white flex items-center justify-center font-bold">3</div>
+                        <div class="w-5/12 pl-8"></div>
+                    </div>
+                </div>
+
+                <!-- GWP Calculator -->
+                <div class="bg-white rounded-xl shadow-sm p-8 mb-12 border border-slate-200">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">Interactive: Understanding GWP (Global Warming Potential)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="col-span-1">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Select Gas</label>
+                            <select id="gas-select" class="w-full p-2 border border-slate-300 rounded focus:ring-[#E07A5F] focus:border-[#E07A5F]">
+                                <option value="1">Carbon Dioxide (CO₂)</option>
+                                <option value="28">Methane (CH₄)</option>
+                                <option value="265">Nitrous Oxide (N₂O)</option>
+                            </select>
+                            <p class="text-xs text-slate-500 mt-2">GWP Values based on IPCC AR5 (Example).</p>
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Amount (tonnes)</label>
+                            <input type="number" id="gas-amount" value="1" class="w-full p-2 border border-slate-300 rounded focus:ring-[#E07A5F] focus:border-[#E07A5F]">
+                        </div>
+                        <div class="col-span-1 bg-slate-50 p-4 rounded text-center">
+                            <span class="block text-sm font-bold text-slate-500">CO₂ Equivalent</span>
+                            <span class="block text-3xl font-bold text-[#E07A5F]" id="gwp-result">1.00</span>
+                            <span class="text-sm text-slate-400">tCO₂e</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mitigation -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+                        <h3 class="font-bold text-lg mb-2">Base Year Recalculation</h3>
+                        <p class="text-sm text-slate-600 mb-2">Required if structural changes (M&A) or methodology changes occur.</p>
+                        <p class="text-xs italic text-slate-500">Clause 6.4</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
+                        <h3 class="font-bold text-lg mb-2">Mitigation & Offsets</h3>
+                        <p class="text-sm text-slate-600 mb-2">Offsets/Projects must be listed <strong>separately</strong>. They cannot be subtracted from the inventory to "net out" the total.</p>
+                        <p class="text-xs italic text-slate-500">Clause 7.2</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: COMPLIANCE -->
+        <section id="view-compliance" class="hidden animate-fade-in">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">Reporting & Quality</h2>
+                    <p class="text-slate-600">Ensuring your report is robust, verifiable, and compliant with Clause 9.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Quality Management -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-1">
+                        <h3 class="font-bold text-lg text-slate-800 mb-4 flex items-center">
+                            <span class="bg-[#84A98C] text-white w-8 h-8 rounded-full flex items-center justify-center mr-2">Q</span>
+                            Quality (Clause 8)
+                        </h3>
+                        <ul class="space-y-3 text-sm text-slate-600">
+                            <li class="flex items-start">
+                                <span class="text-[#84A98C] mr-2">✓</span>
+                                Implement procedures to identify errors.
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-[#84A98C] mr-2">✓</span>
+                                Train personnel involved in the inventory.
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-[#84A98C] mr-2">✓</span>
+                                <strong>Uncertainty Assessment:</strong> Mandatory quantitative assessment at the category level (or justified qualitative).
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Reporting Checklist -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2">
+                        <h3 class="font-bold text-lg text-slate-800 mb-4">Clause 9: Reporting Requirements</h3>
+                        <p class="text-sm text-slate-500 mb-4">A GHG report is mandatory if you claim conformity or seek verification. Toggle the sections below to see what is required.</p>
+                        
+                        <div class="space-y-2">
+                            <!-- Req 1 -->
+                            <div class="border border-slate-200 rounded overflow-hidden">
+                                <button class="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 font-medium text-slate-700 flex justify-between items-center" onclick="toggleReport('rep-1')">
+                                    <span>Mandatory Information (Selected)</span>
+                                    <span class="text-xs text-slate-400">▼</span>
+                                </button>
+                                <div id="rep-1" class="hidden px-4 py-3 text-sm text-slate-600 bg-white">
+                                    <ul class="list-disc pl-5 space-y-1">
+                                        <li>Description of reporting boundaries.</li>
+                                        <li>Significant indirect emissions & criteria used.</li>
+                                        <li>Base year data.</li>
+                                        <li>Total CO₂e for each Category.</li>
+                                        <li>Uncertainty assessment results.</li>
+                                        <li>Exclusion justifications.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Req 2 -->
+                            <div class="border border-slate-200 rounded overflow-hidden">
+                                <button class="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 font-medium text-slate-700 flex justify-between items-center" onclick="toggleReport('rep-2')">
+                                    <span>Biogenic & Electricity (Annex D & E)</span>
+                                    <span class="text-xs text-slate-400">▼</span>
+                                </button>
+                                <div id="rep-2" class="hidden px-4 py-3 text-sm text-slate-600 bg-white">
+                                    <ul class="list-disc pl-5 space-y-1">
+                                        <li><strong>Biogenic:</strong> Must be quantified and reported <em>separately</em> from the scopes.</li>
+                                        <li><strong>Electricity:</strong> Must use Location-based approach. Market-based is optional additional info.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Req 3 -->
+                            <div class="border border-slate-200 rounded overflow-hidden">
+                                <button class="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 font-medium text-slate-700 flex justify-between items-center" onclick="toggleReport('rep-3')">
+                                    <span>Optional / Recommended</span>
+                                    <span class="text-xs text-slate-400">▼</span>
+                                </button>
+                                <div id="rep-3" class="hidden px-4 py-3 text-sm text-slate-600 bg-white">
+                                    <ul class="list-disc pl-5 space-y-1">
+                                        <li>Internal policies/strategies.</li>
+                                        <li>Offsets and credits (must be separate).</li>
+                                        <li>Sold electricity data.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-[#FFF8F0] border border-[#E07A5F] rounded-lg p-6 text-center">
+                    <h3 class="text-lg font-bold text-[#E07A5F] mb-2">Clause 10: Verification</h3>
+                    <p class="text-slate-700">
+                        If you verify, it must be impartial and objective. This standard links directly to <strong>ISO 14064-3</strong> for verification process requirements.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-6 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-400 text-sm">
+            <p>Generated based on ISO 14064-1:2018 Technical Summary.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- State Management ---
+        const state = {
+            currentTab: 'overview',
+            equityValue: 30,
+            hasControl: false,
+            gasGWP: {
+                '1': 1,    // CO2
+                '28': 28,  // CH4
+                '265': 265 // N2O
+            },
+            charts: {
+                org: null,
+                cat: null
+            }
+        };
+
+        // --- Categories Data (Clause 5.2) ---
+        const categoriesData = [
+            { 
+                id: 'cat1', 
+                label: 'Cat 1: Direct Emissions', 
+                value: 20, 
+                color: '#E07A5F',
+                desc: 'Direct GHG emissions and removals from sources owned or controlled by the organization (formerly Scope 1).'
+            },
+            { 
+                id: 'cat2', 
+                label: 'Cat 2: Imported Energy', 
+                value: 30, 
+                color: '#84A98C',
+                desc: 'Indirect GHG emissions from imported electricity, heat, or steam consumed by the organization (formerly Scope 2).'
+            },
+            { 
+                id: 'cat3', 
+                label: 'Cat 3: Transport', 
+                value: 15, 
+                color: '#5C7C8A',
+                desc: 'Indirect emissions from transport of people and goods (upstream and downstream).'
+            },
+            { 
+                id: 'cat4', 
+                label: 'Cat 4: Products Used', 
+                value: 15, 
+                color: '#F2CC8F',
+                desc: 'Indirect emissions from products used by the organization (e.g., purchased goods, capital goods).'
+            },
+            { 
+                id: 'cat5', 
+                label: 'Cat 5: Use of Products', 
+                value: 10, 
+                color: '#3D405B',
+                desc: 'Indirect emissions associated with the use of the organization’s sold products.'
+            },
+            { 
+                id: 'cat6', 
+                label: 'Cat 6: Other Sources', 
+                value: 10, 
+                color: '#9CA3AF',
+                desc: 'Any other indirect emissions not captured in Categories 2-5.'
+            }
+        ];
+
+        // --- Navigation ---
+        function switchTab(tabId) {
+            // Update Tab UI
+            document.querySelectorAll('.nav-tab').forEach(el => {
+                el.classList.remove('tab-active');
+                el.classList.add('tab-inactive');
+            });
+            const activeTab = document.getElementById(`tab-${tabId}`);
+            if(activeTab) {
+                activeTab.classList.add('tab-active');
+                activeTab.classList.remove('tab-inactive');
+            }
+
+            // Update View Visibility
+            ['overview', 'principles', 'boundaries', 'methodology', 'compliance'].forEach(view => {
+                const el = document.getElementById(`view-${view}`);
+                if(el) {
+                    if (view === tabId) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
+            });
+
+            state.currentTab = tabId;
+
+            // Resize charts if entering boundaries tab
+            if(tabId === 'boundaries') {
+                setTimeout(() => {
+                    if(state.charts.org) state.charts.org.resize();
+                    if(state.charts.cat) state.charts.cat.resize();
+                }, 100);
+            }
+        }
+
+        // --- Interactive Functions ---
+        
+        // Def Toggle
+        function toggleDef(id) {
+            const el = document.getElementById(id);
+            if(el) el.classList.toggle('hidden');
+        }
+
+        // Report Toggle
+        function toggleReport(id) {
+            const el = document.getElementById(id);
+            if(el) el.classList.toggle('hidden');
+        }
+
+        // GWP Calculator
+        const gasSelect = document.getElementById('gas-select');
+        const gasAmount = document.getElementById('gas-amount');
+        const gwpResult = document.getElementById('gwp-result');
+
+        function calcGWP() {
+            const gwp = parseFloat(gasSelect.value);
+            const amount = parseFloat(gasAmount.value) || 0;
+            const res = gwp * amount;
+            gwpResult.innerText = res.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+        gasSelect.addEventListener('change', calcGWP);
+        gasAmount.addEventListener('input', calcGWP);
+
+        // --- Organizational Boundary Logic ---
+        const slider = document.getElementById('equity-slider');
+        const equityValDisplay = document.getElementById('equity-val');
+        const orgExplanation = document.getElementById('org-explanation');
+        const btnYes = document.getElementById('btn-control-yes');
+        const btnNo = document.getElementById('btn-control-no');
+
+        function setControl(hasControl) {
+            state.hasControl = hasControl;
+            if(hasControl) {
+                btnYes.classList.remove('bg-slate-200', 'text-black');
+                btnYes.classList.add('bg-[#84A98C]', 'text-white', 'shadow-inner');
+                btnNo.classList.remove('bg-[#84A98C]', 'text-white', 'shadow-inner');
+                btnNo.classList.add('bg-slate-200');
+            } else {
+                btnNo.classList.remove('bg-slate-200');
+                btnNo.classList.add('bg-[#84A98C]', 'text-white', 'shadow-inner');
+                btnYes.classList.remove('bg-[#84A98C]', 'text-white', 'shadow-inner');
+                btnYes.classList.add('bg-slate-200');
+            }
+            updateOrgChart();
+        }
+
+        slider.addEventListener('input', (e) => {
+            state.equityValue = parseInt(e.target.value);
+            equityValDisplay.innerText = state.equityValue;
+            updateOrgChart();
+        });
+
+        function updateOrgChart() {
+            const equity = state.equityValue;
+            // Control Approach: If you have control, 100%, else 0%
+            const controlReport = state.hasControl ? 100 : 0;
+            // Equity Share: Always equals equity %
+            const equityReport = equity;
+
+            state.charts.org.data.datasets[0].data = [controlReport, equityReport];
+            state.charts.org.update();
+
+            orgExplanation.innerHTML = `
+                Under <strong>Control Approach</strong>, you report <span class="font-bold text-[#84A98C]">${controlReport}%</span> of the facility's emissions.<br>
+                Under <strong>Equity Share</strong>, you report <span class="font-bold text-[#E07A5F]">${equityReport}%</span>.
+            `;
+        }
+
+        // --- Chart Initialization ---
+        window.onload = function() {
+            // 1. Org Boundary Chart
+            const ctxOrg = document.getElementById('orgBoundaryChart').getContext('2d');
+            state.charts.org = new Chart(ctxOrg, {
+                type: 'bar',
+                data: {
+                    labels: ['Control Approach', 'Equity Share Approach'],
+                    datasets: [{
+                        label: 'Emissions Reported (%)',
+                        data: [0, 30], // Init values
+                        backgroundColor: ['#84A98C', '#E07A5F'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: '% of Facility Emissions' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // 2. Categories Chart (Donut)
+            const ctxCat = document.getElementById('categoriesChart').getContext('2d');
+            state.charts.cat = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: categoriesData.map(c => c.label),
+                    datasets: [{
+                        data: categoriesData.map(c => c.value),
+                        backgroundColor: categoriesData.map(c => c.color),
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 10 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label;
+                                }
+                            }
+                        }
+                    },
+                    onClick: (evt, elements) => {
+                        if(elements.length > 0) {
+                            const index = elements[0].index;
+                            const data = categoriesData[index];
+                            document.getElementById('cat-title').innerText = data.label;
+                            document.getElementById('cat-desc').innerText = data.desc;
+                            document.getElementById('cat-title').style.color = data.color;
+                        }
+                    }
+                }
+            });
+
+            // Initial setup
+            setControl(false);
+        }
+
+    </script>
+</body>
+</html>
