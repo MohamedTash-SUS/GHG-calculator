@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO 50001:2018 Professional Guide | Dr. Mohamed Tash</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // --- Icon Components (Inline SVGs for standalone reliability) ---
+        const IconBase = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        );
+        const Activity = (props) => <IconBase {...props}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></IconBase>;
+        const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></IconBase>;
+        const Settings = (props) => <IconBase {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
+        const ClipboardCheck = (props) => <IconBase {...props}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></IconBase>;
+        const RefreshCw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></IconBase>;
+        const Info = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></IconBase>;
+        const Lightbulb = (props) => <IconBase {...props}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2.4 1.5-3.8 0-3.3-2.7-6-6-6S6 4.7 6 8c0 1.4.5 2.8 1.5 3.8.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></IconBase>;
+        const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
+        const ChevronDown = (props) => <IconBase {...props}><path d="m6 9 6 6 6-6"/></IconBase>;
+        const ChevronUp = (props) => <IconBase {...props}><path d="m18 15-6-6-6 6"/></IconBase>;
+
+        // --- Data ---
+        const isoData = {
+            Plan: {
+                color: "bg-blue-600",
+                lightColor: "bg-blue-50",
+                borderColor: "border-blue-200",
+                textColor: "text-blue-800",
+                icon: <Search className="w-6 h-6" />,
+                description: "Establish the objectives and processes necessary to deliver results in accordance with the organization's energy policy.",
+                clauses: [
+                {
+                    id: "4",
+                    title: "Clause 4: Context of the Organization",
+                    subtitle: "The Strategic Foundation",
+                    subsections: [
+                    {
+                        id: "4.1",
+                        title: "4.1 Understanding the organization and its context",
+                        content: "The organization must determine external and internal issues affecting its ability to achieve energy outcomes.",
+                        example: "External: Volatile natural gas prices or new carbon tax legislation.\nInternal: Aging infrastructure or a corporate mandate to achieve Net Zero by 2040.",
+                        auditCheck: "Has the organization documented a list of internal and external issues affecting energy performance?"
+                    },
+                    {
+                        id: "4.2",
+                        title: "4.2 Understanding the needs of interested parties",
+                        content: "You must identify who cares about your energy performance (regulators, shareholders, local communities) and what they require.",
+                        auditCheck: "Is there a list of interested parties and their relevant requirements (legal and other)?"
+                    },
+                    {
+                        id: "4.3",
+                        title: "4.3 Determining the Scope of the EnMS",
+                        content: "The organization defines the boundaries (physical or organizational limits) of the EnMS.",
+                        insight: "A crucial requirement here is that the organization shall not exclude an energy type found within the scope and boundaries. You cannot choose to manage electricity but ignore diesel if both are used within the defined boundary.",
+                        auditCheck: "Is the scope and boundary documented? Are all energy sources within the boundary included?"
+                    }
+                    ]
+                },
+                {
+                    id: "5",
+                    title: "Clause 5: Leadership",
+                    subtitle: "Accountability and Policy",
+                    subsections: [
+                    {
+                        id: "5.1",
+                        title: "5.1 Leadership and Commitment",
+                        content: "Top management can no longer simply delegate energy management to the engineering department. They must demonstrate leadership by ensuring resources are available and that the EnMS is integrated into business processes.",
+                        auditCheck: "Can top management demonstrate active involvement (e.g., attending reviews, allocating budget)?"
+                    },
+                    {
+                        id: "5.2",
+                        title: "5.2 Energy Policy",
+                        content: "This is the driver of the system. It must include three specific commitments: to satisfy legal requirements, to ensure information/resource availability, and to continually improve both the EnMS and energy performance.",
+                        auditCheck: "Does the policy contain the three mandatory commitments? Is it communicated?"
+                    },
+                    {
+                        id: "5.3",
+                        title: "5.3 Roles, Responsibilities, and Authorities",
+                        content: "Management must assign an energy management team.",
+                        example: "In a large facility, this team might consist of a lead engineer, a procurement officer, and a production manager, breaking the silo between 'making products' and 'saving energy'.",
+                        auditCheck: "Is there a designated Energy Team? Are roles clearly defined?"
+                    }
+                    ]
+                },
+                {
+                    id: "6",
+                    title: "Clause 6: Planning",
+                    subtitle: "The Technical Core",
+                    intro: "This clause contains the most distinct technical requirements compared to other ISO standards.",
+                    subsections: [
+                    {
+                        id: "6.1",
+                        title: "6.1 Actions to address risks and opportunities",
+                        content: "You must plan actions to address risks (e.g., supply grid instability) and opportunities (e.g., utilizing waste heat recovery).",
+                        auditCheck: "Are risks and opportunities documented with planned actions?"
+                    },
+                    {
+                        id: "6.2",
+                        title: "6.2 Objectives, energy targets and planning",
+                        content: "Specific, measurable goals must be set along with detailed action plans on how to achieve them.",
+                        example: "Goal: 'Reduce natural gas intensity by 5% by Q4'.",
+                        auditCheck: "Are targets measurable? Do action plans exist to achieve them?"
+                    },
+                    {
+                        id: "6.3",
+                        title: "6.3 Energy Review",
+                        content: "The analytical engine. 1) Analyze energy use. 2) Identify Significant Energy Uses (SEUs). 3) Identify improvement opportunities.",
+                        insight: "This is where ISO 50002 (Energy Audits) often plugs in. An audit is an excellent method to conduct this review.",
+                        auditCheck: "Is the energy review updated? Have SEUs been identified based on data?"
+                    },
+                    {
+                        id: "6.4",
+                        title: "6.4 & 6.5 EnPIs and Energy Baselines (EnBs)",
+                        content: "Establish Energy Performance Indicators (EnPIs) (the ruler) and Energy Baselines (EnBs) (the reference point).",
+                        insight: "Crucial Requirement: If relevant variables (like weather or production volume) significantly affect energy use, you shall carry out normalization.",
+                        example: "You cannot compare the heating bill of a mild winter to a harsh winter directly. You must normalize the data using Degree Days.",
+                        auditCheck: "Are EnPIs appropriate? Has normalization been applied where variables affect consumption?"
+                    },
+                    {
+                        id: "6.6",
+                        title: "6.6 Planning for collection of energy data",
+                        content: "Define a plan to measure key characteristics (SEUs, relevant variables) at defined intervals.",
+                        auditCheck: "Is there a measurement plan? Are meters calibrated/verified?"
+                    }
+                    ]
+                }
+                ]
+            },
+            Do: {
+                color: "bg-emerald-600",
+                lightColor: "bg-emerald-50",
+                borderColor: "border-emerald-200",
+                textColor: "text-emerald-800",
+                icon: <Settings className="w-6 h-6" />,
+                description: "Implement the processes. Provide support and operation controls.",
+                clauses: [
+                {
+                    id: "7",
+                    title: "Clause 7: Support",
+                    subtitle: "Enabling the System",
+                    subsections: [
+                    {
+                        id: "7.2",
+                        title: "7.2 Competence",
+                        content: "Persons affecting energy performance must be competent based on education, training, or experience.",
+                        example: "A boiler operator must be trained not just on safety, but on efficient firing sequences.",
+                        auditCheck: "Are training records available for personnel working with SEUs?"
+                    },
+                    {
+                        id: "7.3",
+                        title: "7.3 Awareness",
+                        content: "Everyone working for the organization must be aware of the energy policy and how their behavior impacts energy use.",
+                        auditCheck: "Can random employees explain how they contribute to energy savings?"
+                    },
+                    {
+                        id: "7.4",
+                        title: "7.4 Communication",
+                        content: "A process must be established for internal communication, specifically allowing anyone to suggest improvements.",
+                        auditCheck: "Is there a suggestion scheme or mechanism for energy ideas?"
+                    },
+                    {
+                        id: "7.5",
+                        title: "7.5 Documented Information",
+                        content: "The system requires documentation (policy, review results, training), but volume should be appropriate to complexity.",
+                        auditCheck: "Is document control in place? Are documents available where needed?"
+                    }
+                    ]
+                },
+                {
+                    id: "8",
+                    title: "Clause 8: Operation",
+                    subtitle: "Execution and Control",
+                    subsections: [
+                    {
+                        id: "8.1",
+                        title: "8.1 Operational Planning and Control",
+                        content: "Establish criteria for operating and maintaining SEUs to prevent significant deviations.",
+                        example: "SOP requires shutting down conveyor belts during lunch breaks or setting specific temperature bands for chillers.",
+                        auditCheck: "Are SOPs available for SEUs? Are they being followed?"
+                    },
+                    {
+                        id: "8.2",
+                        title: "8.2 Design",
+                        content: "When designing new facilities or renovating, the organization shall consider energy performance improvement opportunities.",
+                        auditCheck: "Is energy performance considered in design projects/renovations?"
+                    },
+                    {
+                        id: "8.3",
+                        title: "8.3 Procurement",
+                        content: "Establish criteria for evaluating energy performance when purchasing energy-using products.",
+                        example: "Procurement policy dictates evaluating Total Cost of Ownership (energy costs over 10 years) rather than just lowest initial price.",
+                        auditCheck: "Does the purchasing process include energy efficiency criteria?"
+                    }
+                    ]
+                }
+                ]
+            },
+            Check: {
+                color: "bg-amber-500",
+                lightColor: "bg-amber-50",
+                borderColor: "border-amber-200",
+                textColor: "text-amber-800",
+                icon: <ClipboardCheck className="w-6 h-6" />,
+                description: "Monitor and measure processes against energy policy and objectives, and report the results.",
+                clauses: [
+                {
+                    id: "9",
+                    title: "Clause 9: Performance Evaluation",
+                    subtitle: "Verification and Analysis",
+                    subsections: [
+                    {
+                        id: "9.1",
+                        title: "9.1 Monitoring, measurement, analysis",
+                        content: "Determine if targets are met. Crucially, improvement in energy performance shall be evaluated by comparing EnPI values against the EnB.",
+                        insight: "It is not enough to say 'we installed LEDs.' You must measure the result against the baseline to prove the savings.",
+                        auditCheck: "Is actual energy performance compared against the baseline?"
+                    },
+                    {
+                        id: "9.1.2",
+                        title: "9.1.2 Evaluation of compliance",
+                        content: "Periodically evaluate compliance with legal requirements identified in Clause 4.2.",
+                        auditCheck: "Is there a record of compliance evaluation?"
+                    },
+                    {
+                        id: "9.2",
+                        title: "9.2 Internal Audit",
+                        content: "Independent audits (distinct from 'Energy Audit' in 6.3) to verify if the management system conforms to ISO 50001.",
+                        auditCheck: "Are internal audits conducted as planned? Are auditors independent?"
+                    },
+                    {
+                        id: "9.3",
+                        title: "9.3 Management Review",
+                        content: "Top management must review the system's performance, trends in energy data, and make strategic decisions.",
+                        auditCheck: "Are management reviews held? Do outputs include decisions on resources?"
+                    }
+                    ]
+                }
+                ]
+            },
+            Act: {
+                color: "bg-rose-600",
+                lightColor: "bg-rose-50",
+                borderColor: "border-rose-200",
+                textColor: "text-rose-800",
+                icon: <RefreshCw className="w-6 h-6" />,
+                description: "Take actions to continually improve energy performance and the EnMS.",
+                clauses: [
+                {
+                    id: "10",
+                    title: "Clause 10: Improvement",
+                    subtitle: "Closing the Loop",
+                    subsections: [
+                    {
+                        id: "10.1",
+                        title: "10.1 Nonconformity and Corrective Action",
+                        content: "When things go wrong (missed target, process failure), take action to control the issue and eliminate the root cause.",
+                        auditCheck: "Are nonconformities recorded? are root cause analyses performed?"
+                    },
+                    {
+                        id: "10.2",
+                        title: "10.2 Continual Improvement",
+                        content: "Demonstrate continual improvement of 1) The suitability of the EnMS, and 2) The Energy Performance (actual data).",
+                        insight: "ISO 50001 is unique: certification requires demonstrating a measurable improvement in energy efficiency, use, or consumption. Merely having a system is not enough; the physics must show improvement.",
+                        auditCheck: "Is there evidence of measurable energy performance improvement?"
+                    }
+                    ]
+                }
+                ]
+            }
+        };
+
+        // --- Helper Components ---
+        const InsightBox = ({ text }) => (
+            <div className="flex items-start gap-3 p-4 my-3 bg-indigo-50 border-l-4 border-indigo-500 rounded-r-lg">
+                <Lightbulb className="w-6 h-6 text-indigo-600 shrink-0 mt-0.5" />
+                <div>
+                    <h4 className="font-bold text-indigo-900 text-sm uppercase tracking-wide mb-1">Professional Insight</h4>
+                    <p className="text-indigo-800 text-sm leading-relaxed">{text}</p>
+                </div>
+            </div>
+        );
+
+        const ExampleBox = ({ text }) => (
+            <div className="flex items-start gap-3 p-4 my-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <BookOpen className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                    <h4 className="font-semibold text-emerald-900 text-sm mb-1">Example</h4>
+                    <p className="text-emerald-800 text-sm whitespace-pre-line">{text}</p>
+                </div>
+            </div>
+        );
+
+        const AuditCheck = ({ text }) => (
+            <div className="flex items-start gap-3 p-4 my-3 bg-gray-50 border border-gray-300 border-dashed rounded-lg animate-fade-in">
+                <div className="bg-white p-1 rounded border border-gray-300">
+                    <div className="w-4 h-4 border border-gray-400 rounded-sm"></div>
+                </div>
+                <div>
+                    <h4 className="font-bold text-gray-700 text-sm mb-1">Audit Check</h4>
+                    <p className="text-gray-600 text-sm italic">{text}</p>
+                </div>
+            </div>
+        );
+
+        // --- Main App Component ---
+        const App = () => {
+            const [activePhase, setActivePhase] = useState('Plan');
+            const [auditMode, setAuditMode] = useState(false);
+            const [expandedSubsections, setExpandedSubsections] = useState({});
+
+            const toggleSubsection = (id) => {
+                setExpandedSubsections(prev => ({
+                    ...prev,
+                    [id]: !prev[id]
+                }));
+            };
+
+            const currentData = isoData[activePhase];
+
+            return (
+                <div className="min-h-screen bg-gray-100 font-sans text-gray-800 flex flex-col">
+                
+                {/* Header */}
+                <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
+                    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Activity className="w-8 h-8 text-green-600" />
+                            <div>
+                                <h1 className="text-xl font-bold text-gray-900 leading-tight">
+                                    ISO 50001:2018 <span className="text-gray-500 font-normal hidden sm:inline">| Professional Guide</span>
+                                </h1>
+                                <a 
+                                    href="https://www.linkedin.com/in/drtash" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 hover:underline"
+                                >
+                                    Dr. Mohamed Tash
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <span className={`text-sm font-medium ${auditMode ? 'text-gray-900' : 'text-gray-500'}`}>Audit Mode</span>
+                                <button 
+                                    onClick={() => setAuditMode(!auditMode)}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${auditMode ? 'bg-green-600' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${auditMode ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+                    
+                    {/* Intro Banner */}
+                    <div className="mb-8 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+                        <div className="flex-1">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Energy Management System (EnMS)</h2>
+                        <p className="text-gray-600 leading-relaxed">
+                            This standard follows the "High-Level Structure" (HLS) based on the 
+                            <span className="font-semibold text-gray-900 mx-1">Plan-Do-Check-Act (PDCA)</span> 
+                            cycle. It is designed to integrate energy management into existing business processes 
+                            rather than treating it as an isolated technical exercise.
+                        </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="text-center px-4 py-2 bg-blue-50 rounded-lg">
+                                <span className="block text-xl font-bold text-blue-700">P</span>
+                                <span className="text-xs text-blue-600 font-medium">Plan</span>
+                            </div>
+                            <div className="text-center px-4 py-2 bg-emerald-50 rounded-lg">
+                                <span className="block text-xl font-bold text-emerald-700">D</span>
+                                <span className="text-xs text-emerald-600 font-medium">Do</span>
+                            </div>
+                            <div className="text-center px-4 py-2 bg-amber-50 rounded-lg">
+                                <span className="block text-xl font-bold text-amber-700">C</span>
+                                <span className="text-xs text-amber-600 font-medium">Check</span>
+                            </div>
+                            <div className="text-center px-4 py-2 bg-rose-50 rounded-lg">
+                                <span className="block text-xl font-bold text-rose-700">A</span>
+                                <span className="text-xs text-rose-600 font-medium">Act</span>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    
+                    {/* Sidebar Navigation (PDCA) */}
+                    <div className="lg:col-span-3 space-y-3">
+                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 ml-1">PDCA Cycle</h3>
+                        {Object.keys(isoData).map((phase) => (
+                        <button
+                            key={phase}
+                            onClick={() => setActivePhase(phase)}
+                            className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl text-left transition-all duration-300 border ${
+                            activePhase === phase 
+                                ? `${isoData[phase].color} text-white shadow-lg shadow-gray-300 border-transparent transform scale-105` 
+                                : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
+                            }`}
+                        >
+                            <div className={`p-1.5 rounded-full ${activePhase === phase ? 'bg-white/20' : 'bg-gray-100'}`}>
+                            {isoData[phase].icon}
+                            </div>
+                            <div>
+                            <span className="block font-bold text-lg">{phase}</span>
+                            </div>
+                        </button>
+                        ))}
+                        
+                        {/* Quick Glossary (Sticky in sidebar) */}
+                        <div className="bg-slate-800 text-slate-300 rounded-xl p-5 mt-8 shadow-lg">
+                        <h4 className="text-white font-bold mb-3 flex items-center gap-2">
+                            <Info className="w-4 h-4" /> Key Concepts
+                        </h4>
+                        <ul className="space-y-3 text-sm">
+                            <li>
+                            <strong className="text-white block">SEU</strong> 
+                            Significant Energy Use. Areas with big consumption or savings potential.
+                            </li>
+                            <li>
+                            <strong className="text-white block">EnPI</strong> 
+                            Energy Performance Indicator. The ruler you measure with (e.g., kWh/unit).
+                            </li>
+                            <li>
+                            <strong className="text-white block">EnB</strong> 
+                            Energy Baseline. The reference period you compare against.
+                            </li>
+                            <li>
+                            <strong className="text-white block">Normalization</strong> 
+                            Adjusting data for variables (weather, production) for fair comparison.
+                            </li>
+                        </ul>
+                        </div>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="lg:col-span-9 space-y-6">
+                        
+                        {/* Phase Header */}
+                        <div className={`p-6 rounded-xl border ${currentData.lightColor} ${currentData.borderColor}`}>
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-white border ${currentData.borderColor} ${currentData.textColor}`}>
+                            Phase: {activePhase}
+                            </span>
+                        </div>
+                        <p className={`text-lg font-medium ${currentData.textColor}`}>
+                            {currentData.description}
+                        </p>
+                        </div>
+
+                        {/* Clauses */}
+                        {currentData.clauses.map((clause) => (
+                        <div key={clause.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                {clause.title}
+                            </h3>
+                            <p className="text-gray-500 font-medium mt-1">{clause.subtitle}</p>
+                            {clause.intro && (
+                                <p className="mt-3 text-gray-600 text-sm italic">{clause.intro}</p>
+                            )}
+                            </div>
+
+                            <div className="divide-y divide-gray-100">
+                            {clause.subsections.map((sub) => {
+                                const isExpanded = expandedSubsections[sub.id];
+                                
+                                return (
+                                <div key={sub.id} className="group">
+                                    <button 
+                                    onClick={() => toggleSubsection(sub.id)}
+                                    className="w-full text-left p-5 hover:bg-gray-50 transition-colors flex items-start justify-between gap-4"
+                                    >
+                                    <span className="font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">
+                                        {sub.title}
+                                    </span>
+                                    <span className="text-gray-400">
+                                        {isExpanded ? <ChevronUp className="w-5 h-5"/> : <ChevronDown className="w-5 h-5"/>}
+                                    </span>
+                                    </button>
+                                    
+                                    {isExpanded && (
+                                    <div className="px-6 pb-6 animate-fade-in">
+                                        <div className="prose prose-sm max-w-none text-gray-600 mb-4">
+                                        {sub.content}
+                                        </div>
+                                        
+                                        {/* Interactive Elements */}
+                                        {auditMode ? (
+                                        <AuditCheck text={sub.auditCheck} />
+                                        ) : (
+                                        <>
+                                            {sub.insight && <InsightBox text={sub.insight} />}
+                                            {sub.example && <ExampleBox text={sub.example} />}
+                                        </>
+                                        )}
+                                    </div>
+                                    )}
+                                </div>
+                                );
+                            })}
+                            </div>
+                        </div>
+                        ))}
+
+                    </div>
+                    </div>
+                </main>
+
+                <footer className="bg-white border-t border-gray-200 mt-12 py-8">
+                    <div className="max-w-6xl mx-auto px-4 text-center text-gray-400 text-sm">
+                        <p className="text-gray-600 font-medium mb-1">
+                            Prepared by <a href="https://www.linkedin.com/in/drtash" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Dr. Mohamed Tash</a>
+                        </p>
+                        <p>ISO 50001 Professional Guide • Based on 2018 Standard</p>
+                        <p className="mt-2">This tool is for educational purposes and does not constitute official certification.</p>
+                    </div>
+                </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
