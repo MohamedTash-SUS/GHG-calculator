@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO 14064-2:2019 Interactive Guide</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React and ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- MathJax for LaTeX -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .animate-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Custom Icon Component to handle Lucide in browser
+        const Icon = ({ name, className = "w-5 h-5" }) => {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+            return <i data-lucide={name} className={className}></i>;
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('overview');
+            const [selectedClause, setSelectedClause] = useState(null);
+
+            useEffect(() => {
+                if (window.MathJax && window.MathJax.typeset) {
+                    window.MathJax.typeset();
+                }
+            }, [activeTab]);
+
+            const principles = [
+                { id: 'rel', name: 'Relevance', desc: 'Selecting SSRs and methodologies appropriate to the user.' },
+                { id: 'com', name: 'Completeness', desc: 'Including all relevant GHG emissions and removals.' },
+                { id: 'con', name: 'Consistency', desc: 'Using uniform procedures to allow comparison.' },
+                { id: 'acc', name: 'Accuracy', desc: 'Reducing bias and uncertainties as far as practical.' },
+                { id: 'tra', name: 'Transparency', desc: 'Disclosing sufficient information for decision-making.' },
+                { id: 'csv', name: 'Conservativeness', desc: 'Err on the side of under-claiming reductions when data is uncertain.', highlight: true },
+            ];
+
+            const clauses = [
+                { 
+                    id: 1, 
+                    title: "Scope & Neutrality", 
+                    content: "This clause establishes boundaries. A key feature is 'GHG Programme Neutrality'. It works with Verra, Gold Standard, or CDM. Specific program requirements always take precedence.",
+                    icon: "target"
+                },
+                { 
+                    id: 3, 
+                    title: "Terms & Definitions", 
+                    content: "The framework for project accounting. Key concepts: Baseline Scenarios (the 'Business as Usual') and SSRs (Sources, Sinks, Reservoirs).",
+                    icon: "book-open"
+                },
+                { 
+                    id: 6, 
+                    title: "Project Requirements", 
+                    content: "The operational core. Includes project description, identifying SSRs, and establishing the baseline. Requires 'Functional Equivalence' between project and baseline.",
+                    icon: "settings",
+                    subSteps: ["6.2 Describe the Project", "6.4 Determine the Baseline", "6.7 Quantify Emissions", "6.10 Monitoring Plan"]
+                },
+                { 
+                    id: 12, 
+                    title: "Validation vs. Verification", 
+                    content: "Validation occurs at the planning stage (design). Verification occurs during implementation (actual performance data).",
+                    icon: "clipboard-check"
+                }
+            ];
+
+            const ssrTypes = [
+                { title: "Controlled SSRs", desc: "Under direct operational control (e.g., boiler stack).", color: "bg-blue-100 border-blue-500 text-blue-800", icon: "layers" },
+                { title: "Related SSRs", desc: "Energy/material flows into/out of the project (e.g., fuel transport).", color: "bg-green-100 border-green-500 text-green-800", icon: "layers" },
+                { title: "Affected SSRs", desc: "Influenced via market supply/demand (often called 'leakage').", color: "bg-orange-100 border-orange-500 text-orange-800", icon: "layers" },
+            ];
+
+            const Overview = () => (
+                <div className="space-y-6 animate-in">
+                    <div className="bg-white border-l-4 border-slate-800 p-6 rounded-r-lg shadow-sm">
+                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Introduction to ISO 14064-2:2019</h2>
+                        <p className="text-slate-600 leading-relaxed text-sm md:text-base">
+                            While Part 1 focuses on <strong>Organizations</strong>, Part 2 is the standard for <strong>Intervention Projects</strong>. 
+                            It governs activities designed to generate specific emission reductions against a hypothetical baseline.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-4 border border-slate-200 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center mb-3">
+                                <Icon name="factory" className="text-blue-600 w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold">Reductions</h3>
+                            <p className="text-sm text-slate-500">Decreasing emissions below a baseline level (e.g., Energy Efficiency).</p>
+                        </div>
+                        <div className="p-4 border border-slate-200 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center mb-3">
+                                <Icon name="trees" className="text-green-600 w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold">Removals</h3>
+                            <p className="text-sm text-slate-500">Enhancing GHG sinks (e.g., Afforestation or Carbon Capture).</p>
+                        </div>
+                        <div className="p-4 border border-slate-200 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-purple-100 w-10 h-10 rounded-full flex items-center justify-center mb-3">
+                                <Icon name="bar-chart-3" className="text-purple-600 w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold">Additionality</h3>
+                            <p className="text-sm text-slate-500">Ensuring reductions go beyond 'Business as Usual'.</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-8">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                            <Icon name="check-circle-2" className="text-green-600" /> The 6 Core Principles
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {principles.map(p => (
+                                <div key={p.id} className={`p-3 rounded-lg border ${p.highlight ? 'bg-amber-50 border-amber-300' : 'bg-white border-slate-200 shadow-sm'}`}>
+                                    <span className="font-bold text-sm block">{p.name}</span>
+                                    <span className="text-xs text-slate-600">{p.desc}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const Roadmap = () => (
+                <div className="space-y-4 animate-in">
+                    {clauses.map((clause) => (
+                        <div 
+                            key={clause.id}
+                            onClick={() => setSelectedClause(selectedClause === clause.id ? null : clause.id)}
+                            className="cursor-pointer border border-slate-200 rounded-xl overflow-hidden hover:border-slate-400 transition-all bg-white shadow-sm"
+                        >
+                            <div className={`p-4 flex items-center justify-between transition-colors ${selectedClause === clause.id ? 'bg-slate-800 text-white' : 'bg-white'}`}>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs font-mono opacity-60">Clause {clause.id}</span>
+                                    <div className={`p-2 rounded ${selectedClause === clause.id ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-800'}`}>
+                                        <Icon name={clause.icon} />
+                                    </div>
+                                    <h3 className="font-bold text-sm md:text-base">{clause.title}</h3>
+                                </div>
+                                <Icon name="arrow-right" className={`w-4 h-4 transition-transform ${selectedClause === clause.id ? 'rotate-90' : ''}`} />
+                            </div>
+                            
+                            {selectedClause === clause.id && (
+                                <div className="p-4 text-slate-700 bg-white border-t border-slate-200">
+                                    <p className="mb-4 text-sm leading-relaxed">{clause.content}</p>
+                                    {clause.subSteps && (
+                                        <div className="bg-slate-50 rounded-lg p-3">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Key Operational Steps</h4>
+                                            <ul className="space-y-2">
+                                                {clause.subSteps.map(s => (
+                                                    <li key={s} className="text-xs md:text-sm flex items-center gap-2">
+                                                        <Icon name="check-circle-2" className="w-4 h-4 text-slate-400" />
+                                                        {s}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            );
+
+            const SSRVisualizer = () => (
+                <div className="space-y-8 animate-in">
+                    <div className="text-center mb-6">
+                        <h3 className="text-xl font-bold">The Three Buckets of SSRs</h3>
+                        <p className="text-slate-500 text-sm">Categorizing Sources, Sinks, and Reservoirs (Clause 6.3)</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {ssrTypes.map((type, i) => (
+                            <div key={i} className={`p-6 border-2 rounded-2xl shadow-sm flex flex-col items-center text-center space-y-3 transition-transform hover:scale-105 ${type.color}`}>
+                                <Icon name={type.icon} className="w-8 h-8" />
+                                <h4 className="font-bold text-lg">{type.title}</h4>
+                                <p className="text-xs opacity-90">{type.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="bg-slate-800 text-slate-200 p-6 rounded-2xl shadow-lg border border-slate-700">
+                        <h4 className="text-amber-400 font-bold mb-3 flex items-center gap-2">
+                            <Icon name="info" className="w-4 h-4" /> Professional Insight
+                        </h4>
+                        <p className="text-xs md:text-sm italic leading-relaxed">
+                            "If a project replaces a coal boiler with biomass, the description must confirm that the thermal output 
+                            (the function) remains equivalent to the baseline scenario. Without functional equivalence, 
+                            the comparison is logically invalid."
+                        </p>
+                    </div>
+                </div>
+            );
+
+            const Calculator = () => {
+                const [baseline, setBaseline] = useState(1000);
+                const [project, setProject] = useState(600);
+                const [uncertainty, setUncertainty] = useState(false);
+
+                const calcReductions = () => {
+                    let b = baseline;
+                    let p = project;
+                    if (uncertainty) {
+                        b = b * 0.95;
+                        p = p * 1.05;
+                    }
+                    return Math.max(0, b - p).toFixed(2);
+                };
+
+                return (
+                    <div className="space-y-6 animate-in max-w-xl mx-auto">
+                        <div className="bg-white p-6 border border-slate-200 rounded-2xl shadow-lg">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                <Icon name="bar-chart-3" className="text-slate-800" /> Quantification Logic
+                            </h3>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Baseline Emissions (tCO₂e)</label>
+                                    <input type="number" value={baseline} onChange={(e) => setBaseline(Number(e.target.value))} className="w-full mt-1 p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-slate-800 transition-all"/>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Project Emissions (tCO₂e)</label>
+                                    <input type="number" value={project} onChange={(e) => setProject(Number(e.target.value))} className="w-full mt-1 p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-slate-800 transition-all"/>
+                                </div>
+                                
+                                <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <input type="checkbox" checked={uncertainty} onChange={() => setUncertainty(!uncertainty)} className="mt-1 w-5 h-5 cursor-pointer accent-amber-600" id="uncertainty-toggle"/>
+                                    <label htmlFor="uncertainty-toggle" className="text-xs text-amber-800 cursor-pointer">
+                                        <strong>Apply Conservativeness (4.7)</strong>: Use this if data is uncertain. It applies a 5% margin of safety (Decreases baseline / Increases project).
+                                    </label>
+                                </div>
+
+                                <div className="pt-6 border-t border-slate-100 flex flex-col items-center">
+                                    <span className="text-slate-400 text-sm mb-1 font-medium">Total Net Reductions</span>
+                                    <div className="text-4xl font-black text-slate-800">
+                                        {calcReductions()} <span className="text-lg font-normal">tCO₂e</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="text-center p-4">
+                            <p className="text-xs text-slate-400 font-mono">
+                                Formula: Reductions = Baseline Emissions - Project Emissions
+                            </p>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen pb-12">
+                    <div className="max-w-4xl mx-auto px-4 pt-8 md:pt-12">
+                        {/* Header */}
+                        <header className="mb-8 flex flex-col md:flex-row md:items-start justify-between gap-6 border-b border-slate-200 pb-8">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">
+                                    <Icon name="layers" className="w-4 h-4" /> ISO 14064-2:2019
+                                </div>
+                                <h1 className="text-3xl md:text-5xl font-black text-slate-800 mb-3 tracking-tight">Project-Level GHG Guide</h1>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-slate-600">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold text-xs">MT</div>
+                                        <span className="font-bold text-slate-800">Dr. Mohamed Tash</span>
+                                    </div>
+                                    <span className="hidden sm:inline text-slate-300">|</span>
+                                    <a href="https://www.linkedin.com/in/drtash" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors font-bold">
+                                        <Icon name="linkedin" className="w-4 h-4" />
+                                        linkedin.com/in/drtash
+                                    </a>
+                                </div>
+                            </div>
+                            <div className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full self-start shadow-md">
+                                Technical Standard
+                            </div>
+                        </header>
+
+                        {/* Navigation */}
+                        <nav className="flex flex-wrap gap-1 mb-8 bg-slate-200/50 p-1.5 rounded-2xl backdrop-blur-sm sticky top-4 z-50">
+                            {['overview', 'roadmap', 'ssr', 'calc'].map((tab) => (
+                                <button 
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`flex-1 min-w-[100px] px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold capitalize transition-all duration-300 ${activeTab === tab ? 'bg-white shadow-lg text-slate-800 scale-100' : 'text-slate-500 hover:bg-white/50 hover:text-slate-800'}`}
+                                >
+                                    {tab === 'calc' ? 'Calculator' : tab === 'ssr' ? 'SSR Classifier' : tab === 'roadmap' ? 'Clause Roadmap' : tab}
+                                </button>
+                            ))}
+                        </nav>
+
+                        {/* Main Content Area */}
+                        <main className="min-h-[500px]">
+                            {activeTab === 'overview' && <Overview />}
+                            {activeTab === 'roadmap' && <Roadmap />}
+                            {activeTab === 'ssr' && <SSRVisualizer />}
+                            {activeTab === 'calc' && <Calculator />}
+                        </main>
+
+                        {/* Footer */}
+                        <footer className="mt-16 pt-8 border-t border-slate-200">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs text-slate-500 leading-relaxed">
+                                <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                    <h4 className="font-bold text-slate-700 mb-2 flex items-center gap-2 uppercase tracking-tighter">
+                                        <Icon name="target" className="w-3 h-3" /> Key Differentiator
+                                    </h4>
+                                    <p>Unlike ISO 14064-1 (Organizations), Part 2 focuses exclusively on <strong>interventions</strong>. It establishes the delta between actual project performance and a hypothetical baseline scenario.</p>
+                                </div>
+                                <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                    <h4 className="font-bold text-slate-700 mb-2 flex items-center gap-2 uppercase tracking-tighter">
+                                        <Icon name="clipboard-check" className="w-3 h-3" /> Audit Readiness
+                                    </h4>
+                                    <p>Clause 6.11 mandates a clear 'Audit Trail'. All monitoring data must be stored such that an independent validator can replicate your results starting from raw activity data.</p>
+                                </div>
+                            </div>
+                            <div className="mt-8 text-center text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">
+                                Interactive Specification &copy; ISO 14064-2 Professional Series
+                            </div>
+                        </footer>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
