@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO 14064-3 Interactive Guide</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <!-- Babel for on-the-fly JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // --- SVG Icons (Replacing lucide-react for standalone compatibility) ---
+        const BookOpen = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
+        const CheckCircle = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+        const Search = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
+        const ShieldCheck = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>;
+        const AlertTriangle = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+        const FileText = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>;
+        const Target = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>;
+        const Layers = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 12 12 17 22 12"></polyline><polyline points="2 17 12 22 22 17"></polyline></svg>;
+        const CheckSquare = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>;
+        const Clock = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
+        const ChevronRight = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>;
+        const HelpCircle = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+        const Award = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>;
+
+        // --- Data Mapping ---
+        const guideData = [
+          {
+            id: 'intro',
+            title: 'Introduction & Structure',
+            icon: <BookOpen className="w-5 h-5" />,
+            content: `ISO 14064-3:2019 serves as the definitive specification outlining the principles and requirements for verifying and validating greenhouse gas (GHG) statements. 
+            
+        Representing a significant structural evolution from its preceding iteration, this standard methodologically bifurcates the processes of verification, which evaluates historical data, from validation, which assesses assumptions and methods supporting prospective or projected information.`,
+            isIntro: true
+          },
+          {
+            id: 'clause1',
+            title: 'Clause 1: Scope',
+            icon: <Target className="w-5 h-5" />,
+            content: `This clause establishes the document’s applicability and epistemological boundary. It specifies the principles and requirements for verifying, validating, and performing agreed-upon procedures (AUP) on GHG statements at the organizational, project, and product levels. 
+        
+        Crucially, the standard is **"regime neutral,"** meaning it functions as a foundational framework that can be applied independently or in conjunction with the specific requirements of any voluntary or mandatory GHG program.`,
+            example: `An auditing firm can utilize the ISO 14064-3 framework to verify both a corporate GHG inventory submitted to a national regulatory body and a carbon footprint of a product (CFP) under a voluntary eco-labeling scheme, adjusting specific criteria as dictated by the respective programs.`
+          },
+          {
+            id: 'clause2',
+            title: 'Clause 2: Normative references',
+            icon: <FileText className="w-5 h-5" />,
+            content: `The standard explicitly notes that there are no normative references required for the application of this document, rendering it entirely self-contained for compliance purposes.`
+          },
+          {
+            id: 'clause3',
+            title: 'Clause 3: Terms and definitions',
+            icon: <Layers className="w-5 h-5" />,
+            content: `This section constructs the ontological framework necessary for GHG assurance. It sharply distinguishes between a **verification** (evaluating historical data for material correctness) and a **validation** (evaluating the reasonableness of prospective assumptions and methodologies). 
+        
+        It also defines critical assurance parameters, specifically the **level of assurance** (reasonable or limited, dictating the depth of evidence gathering) and **materiality** (the threshold at which individual or aggregated misstatements could influence the decisions of intended users).`
+          },
+          {
+            id: 'clause4',
+            title: 'Clause 4: Principles',
+            icon: <ShieldCheck className="w-5 h-5" />,
+            content: `Clause 4 delineates the core ethical and methodological tenets that must govern the behavior of the assurance practitioner. These include impartiality, fair presentation, proper documentation, an evidence-based approach, and conservativeness.`,
+            example: `When assessing highly uncertain methodologies, applying the principle of conservativeness requires the validator to utilize a cautiously moderate approach, ensuring that baseline emissions are not artificially inflated, which would result in an overestimation of a project's future emission reductions.`
+          },
+          {
+            id: 'clause5',
+            title: 'Clause 5: Requirements',
+            icon: <CheckSquare className="w-5 h-5" />,
+            content: `This clause consolidates the operational requirements shared across all engagement types. It dictates that prior to commencing, the practitioner must execute pre-engagement activities, explicitly agreeing with the client on the engagement type, level of assurance, objectives, criteria, scope, and materiality thresholds. 
+        
+        It mandates the selection of a competent team and outlines acceptable evidence-gathering activities, including observation, inquiry, analytical testing, recalculation, and tracing data trails.`,
+            example: `If the verification objective requires a reasonable level of assurance, the verifier must design rigorous analytical tests and extensive data tracing protocols to reduce the verification risk to an acceptably low level, as opposed to relying predominantly on inquiry, which might suffice for a limited assurance engagement.`
+          },
+          {
+            id: 'clause6',
+            title: 'Clause 6: Verification',
+            icon: <Search className="w-5 h-5" />,
+            content: `Clause 6 constitutes the procedural core for evaluating historical GHG statements. It mandates a strictly sequenced approach:
+        
+        **Planning (6.1):** The verifier must perform a strategic analysis to understand the organization's complexity, which subsequently informs a comprehensive risk assessment. The verifier must identify inherent risks, control risks, and detection risks. This risk profile dictates the evidence-gathering plan, specifying analytical testing, control testing, sampling, and the necessity of site visits.
+        
+        **Execution (6.2):** The verifier conducts the verification activities according to the established plan, assessing any mid-engagement changes to the GHG statement.
+        
+        **Completion (6.3):** The verifier evaluates the sufficiency of the evidence gathered, evaluates any identified misstatements against the materiality threshold, and drafts an initial conclusion.`,
+            example: `If the risk assessment reveals that a manufacturing facility relies on manual spreadsheet entry for its stationary combustion data (high control risk), the evidence-gathering plan must mandate a site visit and extensive recalculation of raw fuel purchase invoices to mitigate the risk of material misstatement.`
+          },
+          {
+            id: 'clause7',
+            title: 'Clause 7: Validation',
+            icon: <Clock className="w-5 h-5" />,
+            content: `Because validation involves evaluating hypothetical or future scenarios (typically for GHG mitigation projects), Clause 7 provides parallel but distinct methodologies tailored to prospective data.
+        
+        **Planning (7.1):** The strategic analysis must evaluate potential material misstatements in projections. A critical component is Estimate testing, wherein the validator assesses the appropriateness of the forecast methodology and its underlying assumptions. The validator must rigorously evaluate GHG-related activity characteristics, including the baseline scenario selection, functional equivalence, and secondary effects (leakage).
+        
+        **Execution (7.2) & Completion (7.3):** The validator executes the plan, rigorously assessing whether the assumptions yield accurate forecasts and ensuring proper disclosure of uncertainties and sensitivities before drafting an opinion.`,
+            example: `When validating an afforestation project, the validator must critically evaluate the proposed baseline scenario to ensure the assumption that the land would have remained degraded is plausible, completely hypothetical, and supported by robust regional land-use data.`
+          },
+          {
+            id: 'clause8',
+            title: 'Clause 8: Independent review',
+            icon: <Search className="w-5 h-5" />,
+            content: `To maintain the highest levels of quality control and objectivity, the standard mandates an independent review process. An independent reviewer—a competent professional who was not involved in the verification or validation activities—must evaluate the engagement's findings, ensuring the evidence gathered sufficiently supports the proposed conclusion before any formal opinion is issued.`
+          },
+          {
+            id: 'clause9',
+            title: 'Clause 9: Issuance of opinion',
+            icon: <Award className="w-5 h-5" />,
+            content: `This clause governs the formal concluding act of the engagement. Depending on the evidence evaluated and the materiality of any unresolved errors, the verifier or validator must formally issue one of several specific opinion types:
+        
+        * **Unmodified:** The GHG statement is materially correct and conforms to criteria.
+        * **Modified:** The statement is broadly reliable, but contains non-material misstatements, scope limitations, or nonconformities.
+        * **Adverse:** The statement contains material and pervasive misstatements or inadequate controls.
+        
+        *Note: If sufficient appropriate evidence cannot be obtained, the practitioner must systematically disclaim the issuance of an opinion.*`
+          },
+          {
+            id: 'clause10',
+            title: 'Clause 10: Facts discovered after',
+            icon: <AlertTriangle className="w-5 h-5" />,
+            content: `This final clause establishes a contingency protocol for post-engagement discoveries. If new, material information concerning the validated or verified GHG statement comes to light after the issuance of the opinion, the verifier or validator must evaluate it and may need to communicate to the responsible party and other interested parties that reliance on the original opinion may now be compromised.`
+          }
+        ];
+
+        const quizQuestions = [
+          {
+            question: "What is the primary difference between Verification and Validation according to ISO 14064-3?",
+            options: [
+              "Verification is for projects; Validation is for organizations.",
+              "Verification assesses historical data; Validation assesses prospective or projected assumptions.",
+              "Verification requires reasonable assurance; Validation requires limited assurance.",
+              "There is no difference; the terms are used interchangeably."
+            ],
+            correctAnswer: 1,
+            explanation: "Verification evaluates historical data for material correctness, while validation evaluates the reasonableness of prospective assumptions and methodologies (Clause 3)."
+          },
+          {
+            question: "If an auditor issues a 'Modified' opinion, what does this indicate?",
+            options: [
+              "The GHG statement contains material and pervasive misstatements.",
+              "The auditor could not gather sufficient evidence and disclaims an opinion.",
+              "The GHG statement is materially correct with no errors.",
+              "The statement is broadly reliable but contains non-material misstatements or scope limitations."
+            ],
+            correctAnswer: 3,
+            explanation: "A Modified opinion means the statement is broadly reliable but has non-material misstatements, scope limitations, or nonconformities (Clause 9)."
+          },
+          {
+            question: "Why is ISO 14064-3 considered 'regime neutral'?",
+            options: [
+              "It only applies to carbon neutral programs.",
+              "It can be applied independently or alongside specific requirements of any voluntary or mandatory GHG program.",
+              "It prohibits the use of national regulatory frameworks.",
+              "It requires a governmental body to oversee the audit."
+            ],
+            correctAnswer: 1,
+            explanation: "Regime neutral means it functions as a foundational framework adaptable to various voluntary or mandatory programs (Clause 1)."
+          }
+        ];
+
+        // --- Components ---
+        function ExamplePanel({ exampleText }) {
+          const [isOpen, setIsOpen] = useState(false);
+
+          return (
+            <div className="rounded-xl border border-emerald-200 overflow-hidden bg-white">
+              <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between p-4 bg-emerald-50 text-emerald-800 font-semibold hover:bg-emerald-100 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Target className="w-5 h-5" /> 
+                  Professional Application Example
+                </span>
+                <ChevronRight className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} />
+              </button>
+              
+              <div 
+                className={`transition-all duration-300 ease-in-out ${
+                  isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                } overflow-hidden`}
+              >
+                <div className="p-5 text-slate-700 bg-white border-t border-emerald-100 leading-relaxed">
+                  <span className="font-semibold text-emerald-700 mr-2">Scenario:</span>
+                  {exampleText}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        function App() {
+          const [activeTab, setActiveTab] = useState(guideData[0].id);
+          const [showQuiz, setShowQuiz] = useState(false);
+          const [currentQuestion, setCurrentQuestion] = useState(0);
+          const [quizScore, setQuizScore] = useState(0);
+          const [quizFinished, setQuizFinished] = useState(false);
+          const [selectedAnswer, setSelectedAnswer] = useState(null);
+
+          const activeContent = guideData.find(item => item.id === activeTab);
+
+          const handleAnswer = (index) => {
+            setSelectedAnswer(index);
+          };
+
+          const nextQuestion = () => {
+            if (selectedAnswer === quizQuestions[currentQuestion].correctAnswer) {
+              setQuizScore(quizScore + 1);
+            }
+            
+            if (currentQuestion < quizQuestions.length - 1) {
+              setCurrentQuestion(currentQuestion + 1);
+              setSelectedAnswer(null);
+            } else {
+              setQuizFinished(true);
+            }
+          };
+
+          const resetQuiz = () => {
+            setCurrentQuestion(0);
+            setQuizScore(0);
+            setQuizFinished(false);
+            setSelectedAnswer(null);
+          };
+
+          return (
+            <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+              <header className="bg-slate-900 text-white p-6 shadow-md">
+                <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+                      <ShieldCheck className="w-8 h-8 text-emerald-400" />
+                      ISO 14064-3:2019 Interactive Guide
+                    </h1>
+                    <p className="text-slate-400 mt-1">Verification and Validation of GHG Statements</p>
+                  </div>
+                  <div className="mt-4 md:mt-0 text-sm bg-slate-800 px-4 py-2 rounded-full border border-slate-700">
+                    Dr. Mohamed Tash | <a href="https://www.linkedin.com/in/drtash" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 hover:underline">www.linkedin.com/in/drtash</a>
+                  </div>
+                </div>
+              </header>
+
+              <main className="max-w-6xl mx-auto my-8 px-4 grid grid-cols-1 md:grid-cols-12 gap-8">
+                
+                <aside className="md:col-span-3 lg:col-span-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-fit">
+                  <div className="p-4 bg-slate-100 border-b border-slate-200 font-semibold text-slate-700">
+                    Guide Contents
+                  </div>
+                  <nav className="flex flex-col">
+                    {guideData.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => { setActiveTab(item.id); setShowQuiz(false); }}
+                        className={`flex items-center gap-3 p-3 text-left text-sm transition-colors border-l-4 ${
+                          !showQuiz && activeTab === item.id
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-medium'
+                            : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        {item.icon}
+                        <span className="truncate">{item.title}</span>
+                      </button>
+                    ))}
+                    <div className="p-4 border-t border-slate-200">
+                      <button
+                        onClick={() => setShowQuiz(true)}
+                        className={`w-full flex items-center justify-center gap-2 p-2 rounded-lg font-medium transition-colors ${
+                          showQuiz 
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                        }`}
+                      >
+                        <HelpCircle className="w-4 h-4" />
+                        Knowledge Check
+                      </button>
+                    </div>
+                  </nav>
+                </aside>
+
+                <section className="md:col-span-9 lg:col-span-9">
+                  {!showQuiz ? (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-100">
+                        <div className="p-3 bg-emerald-100 text-emerald-700 rounded-lg">
+                          {activeContent.icon}
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-800">{activeContent.title}</h2>
+                      </div>
+                      
+                      <div className="prose prose-slate max-w-none">
+                        {activeContent.content.split('\n\n').map((paragraph, idx) => {
+                          const formatText = (text) => {
+                            const parts = text.split(/(\*\*.*?\*\*)/g);
+                            return parts.map((part, i) => {
+                              if (part.startsWith('**') && part.endsWith('**')) {
+                                return <strong key={i} className="text-slate-900 font-bold">{part.slice(2, -2)}</strong>;
+                              }
+                              return part;
+                            });
+                          };
+
+                          return (
+                            <p key={idx} className="mb-4 text-slate-600 leading-relaxed text-lg">
+                              {formatText(paragraph)}
+                            </p>
+                          );
+                        })}
+                      </div>
+
+                      {activeContent.example && (
+                        <div className="mt-8">
+                          <ExamplePanel exampleText={activeContent.example} />
+                        </div>
+                      )}
+
+                      <div className="mt-12 pt-6 border-t border-slate-100 flex justify-between items-center">
+                        <button 
+                          disabled={guideData.findIndex(d => d.id === activeTab) === 0}
+                          onClick={() => setActiveTab(guideData[guideData.findIndex(d => d.id === activeTab) - 1].id)}
+                          className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-30 flex items-center gap-2"
+                        >
+                          Previous Section
+                        </button>
+                        
+                        {guideData.findIndex(d => d.id === activeTab) < guideData.length - 1 ? (
+                          <button 
+                            onClick={() => setActiveTab(guideData[guideData.findIndex(d => d.id === activeTab) + 1].id)}
+                            className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-2"
+                          >
+                            Next Section <ChevronRight className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => setShowQuiz(true)}
+                            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                          >
+                            Take Quiz <HelpCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8 animate-in fade-in zoom-in-95 duration-300">
+                      <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-100">
+                        <div className="p-3 bg-indigo-100 text-indigo-700 rounded-lg">
+                          <HelpCircle className="w-6 h-6" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-800">Knowledge Check</h2>
+                      </div>
+
+                      {!quizFinished ? (
+                        <div>
+                          <div className="mb-4 flex justify-between items-center text-sm font-medium text-slate-500">
+                            <span>Question {currentQuestion + 1} of {quizQuestions.length}</span>
+                            <span>Score: {quizScore}</span>
+                          </div>
+                          <h3 className="text-xl font-semibold text-slate-800 mb-6">
+                            {quizQuestions[currentQuestion].question}
+                          </h3>
+                          
+                          <div className="space-y-3">
+                            {quizQuestions[currentQuestion].options.map((option, index) => (
+                              <button
+                                key={index}
+                                onClick={() => handleAnswer(index)}
+                                className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                                  selectedAnswer === index 
+                                  ? 'border-indigo-600 bg-indigo-50 text-indigo-900' 
+                                  : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 text-slate-700'
+                                }`}
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+
+                          {selectedAnswer !== null && (
+                            <div className="mt-8 flex justify-end">
+                              <button
+                                onClick={nextQuestion}
+                                className="px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                              >
+                                {currentQuestion === quizQuestions.length - 1 ? 'Finish Quiz' : 'Next Question'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 mb-6">
+                            <Award className="w-10 h-10" />
+                          </div>
+                          <h3 className="text-3xl font-bold text-slate-800 mb-2">Quiz Complete!</h3>
+                          <p className="text-lg text-slate-600 mb-8">
+                            You scored {quizScore} out of {quizQuestions.length}.
+                          </p>
+                          
+                          <div className="space-y-4 text-left max-w-2xl mx-auto mb-8">
+                            <h4 className="font-semibold text-slate-800">Review Answers:</h4>
+                            {quizQuestions.map((q, i) => (
+                              <div key={i} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                                <p className="font-medium text-slate-800 mb-2">{q.question}</p>
+                                <p className="text-sm text-emerald-700 flex items-start gap-2">
+                                  <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                  {q.options[q.correctAnswer]}
+                                </p>
+                                <p className="text-sm text-slate-500 mt-2 italic">
+                                  " {q.explanation} "
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <button
+                            onClick={resetQuiz}
+                            className="px-6 py-3 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-colors"
+                          >
+                            Retake Quiz
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+              </main>
+            </div>
+          );
+        }
+
+        // Render the application
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
