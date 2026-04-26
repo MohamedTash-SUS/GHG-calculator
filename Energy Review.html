@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO 50001:2018 Energy Review Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1a5f8a;
+            --primary-light: #e8f2f9;
+            --teal: #0d7d6e;
+            --teal-light: #e6f5f2;
+            --amber: #c2780a;
+            --amber-light: #fef9ee;
+            --red: #c0392b;
+            --red-light: #fdedec;
+            --bg: #f4f6f9;
+            --card: #ffffff;
+            --border: #e0e5ec;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ========== HEADER ========== */
+        .dashboard-header {
+            background: linear-gradient(135deg, #0d3b5c 0%, #1a5f8a 50%, #0d4f6e 100%);
+            color: #fff;
+            padding: 18px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .dashboard-header .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .dashboard-header .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .dashboard-header h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+        .dashboard-header .subtitle {
+            font-size: 0.78rem;
+            opacity: 0.85;
+            font-weight: 400;
+        }
+        .iso-badge {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+        }
+
+        /* ========== KPI ROW ========== */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            padding: 20px 28px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .kpi-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid transparent;
+            transition: var(--transition);
+            cursor: default;
+        }
+        .kpi-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-1px);
+        }
+        .kpi-card.total {
+            border-left-color: var(--primary);
+        }
+        .kpi-card.seu {
+            border-left-color: var(--red);
+        }
+        .kpi-card.enpi {
+            border-left-color: var(--teal);
+        }
+        .kpi-card.savings {
+            border-left-color: var(--amber);
+        }
+        .kpi-card .kpi-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .kpi-card .kpi-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .kpi-card .kpi-unit {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* ========== TAB NAVIGATION ========== */
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 28px;
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--border);
+        }
+        .tab-btn {
+            padding: 13px 22px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: var(--transition);
+            white-space: nowrap;
+            letter-spacing: 0.1px;
+            position: relative;
+        }
+        .tab-btn:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: transparent;
+        }
+        .tab-btn .phase-num {
+            display: inline-block;
+            background: var(--border);
+            color: var(--text-secondary);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 0.7rem;
+            margin-right: 6px;
+            font-weight: 700;
+        }
+        .tab-btn.active .phase-num {
+            background: var(--primary);
+            color: #fff;
+        }
+        .tab-btn .clause-ref {
+            font-size: 0.65rem;
+            font-weight: 400;
+            opacity: 0.6;
+            display: block;
+        }
+
+        /* ========== TAB CONTENT ========== */
+        .tab-content-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 28px 40px;
+        }
+        .tab-panel {
+            display: none;
+            animation: fadeSlideIn 0.35s ease;
+        }
+        .tab-panel.active {
+            display: block;
+        }
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ========== CARDS & GRIDS ========== */
+        .section-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+        .section-grid.three-col {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        .section-grid.full-width {
+            grid-template-columns: 1fr;
+        }
+        @media (max-width: 900px) {
+            .section-grid,
+            .section-grid.three-col {
+                grid-template-columns: 1fr;
+            }
+            .kpi-row {
+                grid-template-columns: 1fr 1fr;
+            }
+            .tab-btn {
+                padding: 10px 14px;
+                font-size: 0.78rem;
+            }
+        }
+        @media (max-width: 600px) {
+            .kpi-row {
+                grid-template-columns: 1fr;
+            }
+            .dashboard-header {
+                padding: 12px 16px;
+            }
+            .tab-content-wrapper {
+                padding: 12px 10px 30px;
+            }
+            .tab-nav {
+                padding: 0 10px;
+                gap: 2px;
+            }
+            .tab-btn {
+                padding: 8px 10px;
+                font-size: 0.7rem;
+            }
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card h3 .clause-tag {
+            font-size: 0.65rem;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .card .chart-container {
+            position: relative;
+            width: 100%;
+            max-height: 320px;
+        }
+        .card .chart-container canvas {
+            max-height: 320px;
+        }
+
+        /* ========== TABLES ========== */
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        table thead th {
+            background: #f8fafc;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+        table tbody td {
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        table tbody tr:hover {
+            background: #fafcfd;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+        .badge-seu {
+            background: var(--red-light);
+            color: var(--red);
+        }
+        .badge-non-seu {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .badge-high {
+            background: var(--red-light);
+            color: var(--red);
+        }
+        .badge-med {
+            background: var(--amber-light);
+            color: var(--amber);
+        }
+        .badge-low {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .badge-trained {
+            background: #e6f5f2;
+            color: var(--teal);
+        }
+        .badge-pending {
+            background: var(--amber-light);
+            color: var(--amber);
+        }
+
+        /* ========== BUTTONS & INPUTS ========== */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: var(--transition);
+            letter-spacing: 0.2px;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #154d70;
+        }
+        .btn-outline {
+            background: #fff;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        .btn-outline:hover {
+            background: var(--primary-light);
+        }
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 0.7rem;
+        }
+        .btn-danger {
+            background: var(--red);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #a93226;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            padding: 7px 10px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            transition: var(--transition);
+            font-family: inherit;
+            width: 100%;
+            max-width: 200px;
+        }
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 95, 138, 0.1);
+        }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 6px 0;
+        }
+        .slider-row label {
+            font-weight: 600;
+            font-size: 0.82rem;
+            min-width: 100px;
+            color: var(--text-secondary);
+        }
+        .slider-row input[type="range"] {
+            flex: 1;
+            max-width: 200px;
+            accent-color: var(--primary);
+        }
+        .slider-row .slider-val {
+            font-weight: 700;
+            font-size: 0.85rem;
+            min-width: 45px;
+            color: var(--primary);
+        }
+
+        /* ========== SEU HIGHLIGHT ========== */
+        .seu-highlight {
+            background: #fff5f5;
+            border: 1.5px solid #fecaca;
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(192, 57, 43, 0);
+            }
+        }
+
+        /* ========== PRINT ========== */
+        @media print {
+            body {
+                background: #fff;
+            }
+            .dashboard-header {
+                position: static;
+                background: #1a5f8a !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .tab-nav {
+                display: none;
+            }
+            .tab-panel {
+                display: block !important;
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+            }
+            .card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="dashboard-header">
+        <div class="logo-area">
+            <div class="logo-icon">⚡</div>
+            <div>
+                <h1>Energy Review Dashboard</h1>
+                <div class="subtitle">ISO 50001:2018 — Clause 6.3 Energy Review</div>
+            </div>
+        </div>
+        <span class="iso-badge">🏭 Dr. Mohamed Tash.</span>
+    </header>
+
+    <!-- ==================== KPI ROW ==================== -->
+    <div class="kpi-row" id="kpiRow">
+        <div class="kpi-card total">
+            <div class="kpi-label">📊 Total Annual Consumption</div>
+            <div class="kpi-value" id="kpiTotal">4,850,000</div>
+            <div class="kpi-unit">kWh equivalent</div>
+        </div>
+        <div class="kpi-card seu">
+            <div class="kpi-label">🔴 Significant Energy Uses (SEUs)</div>
+            <div class="kpi-value" id="kpiSEUCount">3</div>
+            <div class="kpi-unit">above 20% threshold</div>
+        </div>
+        <div class="kpi-card enpi">
+            <div class="kpi-label">📈 Average EnPI (Production)</div>
+            <div class="kpi-value" id="kpiEnPI">12.8</div>
+            <div class="kpi-unit">kWh / unit produced</div>
+        </div>
+        <div class="kpi-card savings">
+            <div class="kpi-label">💡 Identified Savings Potential</div>
+            <div class="kpi-value" id="kpiSavings">342,000</div>
+            <div class="kpi-unit">kWh / year</div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB NAVIGATION ==================== -->
+    <nav class="tab-nav" id="tabNav">
+        <button class="tab-btn active" data-tab="phase1">
+            <span class="phase-num">1</span> Data Foundation
+            <span class="clause-ref">Clause 6.3.a</span>
+        </button>
+        <button class="tab-btn" data-tab="phase2">
+            <span class="phase-num">2</span> SEU Identification
+            <span class="clause-ref">Clause 6.3.b</span>
+        </button>
+        <button class="tab-btn" data-tab="phase3">
+            <span class="phase-num">3</span> Detailed SEU Analysis
+            <span class="clause-ref">Clause 6.3.c</span>
+        </button>
+        <button class="tab-btn" data-tab="phase4">
+            <span class="phase-num">4</span> Improvement & Forecasting
+            <span class="clause-ref">Clause 6.3.d & 6.3.e</span>
+        </button>
+    </nav>
+
+    <!-- ==================== TAB CONTENT ==================== -->
+    <div class="tab-content-wrapper">
+
+        <!-- PHASE 1: Data Foundation -->
+        <div class="tab-panel active" id="phase1">
+            <div class="section-grid">
+                <!-- Energy Source Identification -->
+                <div class="card">
+                    <h3>🔌 Energy Source Identification <span class="clause-tag">6.3.a</span></h3>
+                    <div class="table-wrap">
+                        <table id="sourceTable">
+                            <thead>
+                                <tr><th>Source</th><th>Type</th><th>Unit</th><th>Annual Consumption</th><th>kWh Equivalent</th><th>% of Total</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-outline btn-sm" onclick="addEnergySource()">+ Add Source</button>
+                    </div>
+                </div>
+                <!-- Historical Data Chart -->
+                <div class="card">
+                    <h3>📅 12-Month Historical Consumption <span class="clause-tag">6.3.a</span></h3>
+                    <div class="chart-container"><canvas id="chartHistorical"></canvas></div>
+                </div>
+            </div>
+            <!-- Monthly Data Table -->
+            <div class="card" style="margin-top:18px;">
+                <h3>📋 Monthly Consumption Data (kWh equivalent)</h3>
+                <div class="table-wrap">
+                    <table id="monthlyTable">
+                        <thead><tr><th>Month</th><th>Grid Electricity</th><th>Natural Gas</th><th>Diesel</th><th>Solar PV</th><th>Total</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <p style="font-size:0.7rem;color:var(--text-secondary);margin-top:6px;">💡 Click any cell to edit monthly values. Changes flow through to all charts and SEU calculations.</p>
+            </div>
+        </div>
+
+        <!-- PHASE 2: SEU Identification -->
+        <div class="tab-panel" id="phase2">
+            <div class="section-grid">
+                <div class="card">
+                    <h3>🏭 Energy Breakdown by Process/System <span class="clause-tag">6.3.b</span></h3>
+                    <div class="chart-container"><canvas id="chartCategoryBreakdown"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>🎯 SEU Threshold Analysis <span class="clause-tag">6.3.b</span></h3>
+                    <div style="margin-bottom:10px;">
+                        <label style="font-weight:700;font-size:0.85rem;">SEU Threshold: <span id="thresholdDisplay">20</span>%</label>
+                        <input type="range" id="seuThresholdSlider" min="10" max="40" value="20" step="1"
+                        oninput="updateSEUThreshold(this.value)" style="width:100%;accent-color:var(--red);">
+                        <span style="font-size:0.7rem;color:var(--text-secondary);">Any process using > <strong id="thresholdLabel">20%</strong> of total energy is flagged as an SEU</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table id="seuTable">
+                            <thead><tr><th>Process/System</th><th>Annual kWh</th><th>% of Total</th><th>Status</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 3: Detailed SEU Analysis -->
+        <div class="tab-panel" id="phase3">
+            <div class="section-grid three-col">
+                <!-- Relevant Variables -->
+                <div class="card">
+                    <h3>🔗 Relevant Variables per SEU <span class="clause-tag">6.3.c</span></h3>
+                    <div class="table-wrap">
+                        <table id="variableTable">
+                            <thead><tr><th>SEU</th><th>Relevant Variable</th><th>Correlation</th><th>Data Source</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- EnPI Baselines -->
+                <div class="card">
+                    <h3>📏 EnPI Baselines <span class="clause-tag">6.3.c</span></h3>
+                    <div class="table-wrap">
+                        <table id="enpiTable">
+                            <thead><tr><th>SEU</th><th>EnPI</th><th>Baseline Value</th><th>Current Value</th><th>Trend</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Competency Mapping -->
+                <div class="card">
+                    <h3>👥 Competency Mapping <span class="clause-tag">6.3.c</span></h3>
+                    <div class="table-wrap">
+                        <table id="competencyTable">
+                            <thead><tr><th>Personnel</th><th>Role</th><th>Linked SEU</th><th>Training</th><th>Assessment</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="addPersonnel()">+ Add Personnel</button>
+                </div>
+            </div>
+            <!-- EnPI Trend Chart -->
+            <div class="card" style="margin-top:18px;">
+                <h3>📉 EnPI Trend Analysis (12-Month Rolling)</h3>
+                <div class="chart-container"><canvas id="chartEnPITrend"></canvas></div>
+            </div>
+        </div>
+
+        <!-- PHASE 4: Improvement & Forecasting -->
+        <div class="tab-panel" id="phase4">
+            <div class="section-grid">
+                <!-- Opportunity Log -->
+                <div class="card">
+                    <h3>💡 Energy Performance Improvement Opportunities (EPIs) <span class="clause-tag">6.3.d</span></h3>
+                    <div class="table-wrap">
+                        <table id="opportunityTable">
+                            <thead><tr><th>ID</th><th>Description</th><th>SEU</th><th>Est. Savings (kWh/yr)</th><th>Investment ($)</th><th>Payback (yr)</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="addOpportunity()">+ Add Opportunity</button>
+                </div>
+                <!-- Forecast -->
+                <div class="card">
+                    <h3>🔮 Future Energy Estimation <span class="clause-tag">6.3.e</span></h3>
+                    <div style="margin-bottom:10px;">
+                        <div class="slider-row">
+                            <label>📦 Production Change:</label>
+                            <input type="range" id="forecastProduction" min="-30" max="30" value="10" step="1"
+                            oninput="updateForecast()">
+                            <span class="slider-val" id="forecastProdVal">+10%</span>
+                        </div>
+                        <div class="slider-row">
+                            <label>🌡️ Weather Severity:</label>
+                            <input type="range" id="forecastWeather" min="-20" max="20" value="5" step="1"
+                            oninput="updateForecast()">
+                            <span class="slider-val" id="forecastWeatherVal">+5%</span>
+                        </div>
+                        <div class="slider-row">
+                            <label>⚡ Efficiency Gains:</label>
+                            <input type="range" id="forecastEfficiency" min="0" max="25" value="8" step="1"
+                            oninput="updateForecast()">
+                            <span class="slider-val" id="forecastEffVal">8%</span>
+                        </div>
+                    </div>
+                    <div class="chart-container"><canvas id="chartForecast"></canvas></div>
+                    <p style="font-size:0.82rem;margin-top:8px;"><strong>Projected Annual Total:</strong> <span id="forecastResult" style="color:var(--primary);font-weight:700;">—</span> kWh equivalent</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== CENTRAL STATE ====================
+            const state = {
+                seuThreshold: 20,
+                energySources: [
+                    { name: 'Grid Electricity', type: 'Electricity', unit: 'kWh', annualNative: 2100000, factor: 1,
+                        annualKWh: 2100000 },
+                    { name: 'Natural Gas', type: 'Fossil Fuel', unit: 'm³', annualNative: 155000, factor: 10.55,
+                        annualKWh: 1635250 },
+                    { name: 'Diesel', type: 'Fossil Fuel', unit: 'liters', annualNative: 62000, factor: 10.0,
+                    annualKWh: 620000 },
+                    { name: 'Solar PV', type: 'Renewable', unit: 'kWh', annualNative: 494750, factor: 1, annualKWh: 494750 },
+                ],
+                // Monthly data (kWh equivalent) for 12 months
+                monthlyData: [
+                    { month: 'Jan', electricity: 195000, gas: 210000, diesel: 58000, solar: 28000 },
+                    { month: 'Feb', electricity: 185000, gas: 195000, diesel: 52000, solar: 32000 },
+                    { month: 'Mar', electricity: 178000, gas: 160000, diesel: 54000, solar: 40000 },
+                    { month: 'Apr', electricity: 165000, gas: 120000, diesel: 50000, solar: 45000 },
+                    { month: 'May', electricity: 160000, gas: 95000, diesel: 48000, solar: 50000 },
+                    { month: 'Jun', electricity: 170000, gas: 80000, diesel: 50000, solar: 52000 },
+                    { month: 'Jul', electricity: 185000, gas: 75000, diesel: 53000, solar: 54000 },
+                    { month: 'Aug', electricity: 190000, gas: 78000, diesel: 55000, solar: 51000 },
+                    { month: 'Sep', electricity: 175000, gas: 100000, diesel: 51000, solar: 46000 },
+                    { month: 'Oct', electricity: 170000, gas: 140000, diesel: 52000, solar: 38000 },
+                    { month: 'Nov', electricity: 180000, gas: 175000, diesel: 54000, solar: 30000 },
+                    { month: 'Dec', electricity: 192000, gas: 205000, diesel: 56000, solar: 26000 },
+                ],
+                // Process categories (kWh equivalent)
+                categories: [
+                    { name: 'HVAC System', annualKWh: 1212500, isSEU: false },
+                    { name: 'Production Line A', annualKWh: 1067000, isSEU: false },
+                    { name: 'Compressed Air System', annualKWh: 921500, isSEU: false },
+                    { name: 'Production Line B', annualKWh: 727500, isSEU: false },
+                    { name: 'Lighting', annualKWh: 485000, isSEU: false },
+                    { name: 'Cooling Towers', annualKWh: 291000, isSEU: false },
+                    { name: 'Office Equipment', annualKWh: 97000, isSEU: false },
+                    { name: 'Other Auxiliary', annualKWh: 48500, isSEU: false },
+                ],
+                // SEU relevant variables
+                variables: [
+                    { seu: 'HVAC System', variable: 'Degree Days (Heating/Cooling)', correlation: 'Strong (r=0.88)',
+                        source: 'Weather station API' },
+                    { seu: 'Production Line A', variable: 'Production Volume (units)', correlation: 'Strong (r=0.92)',
+                        source: 'MES/ERP system' },
+                    { seu: 'Compressed Air System', variable: 'Production Runtime (hours)',
+                        correlation: 'Moderate (r=0.74)', source: 'SCADA logs' },
+                    { seu: 'Production Line B', variable: 'Production Volume (units)', correlation: 'Strong (r=0.89)',
+                        source: 'MES/ERP system' },
+                ],
+                // EnPI baselines
+                enpiData: [
+                    { seu: 'HVAC System', enpiName: 'kWh / Degree Day', baseline: 420, current: 398, trend: 'improving' },
+                    { seu: 'Production Line A', enpiName: 'kWh / unit', baseline: 15.2, current: 13.1,
+                    trend: 'improving' },
+                    { seu: 'Compressed Air System', enpiName: 'kWh / runtime hr', baseline: 185, current: 192,
+                        trend: 'worsening' },
+                    { seu: 'Production Line B', enpiName: 'kWh / unit', baseline: 11.8, current: 10.5,
+                    trend: 'improving' },
+                ],
+                // Competency mapping
+                personnel: [
+                    { name: 'Maria Santos', role: 'Chief Engineer', seu: 'HVAC System', training: 'Trained',
+                        assessment: '2024-09' },
+                    { name: 'James Okonkwo', role: 'Production Manager', seu: 'Production Line A', training: 'Trained',
+                        assessment: '2024-08' },
+                    { name: 'Li Wei', role: 'Maintenance Supervisor', seu: 'Compressed Air System',
+                        training: 'Pending Renewal', assessment: '2024-03' },
+                    { name: 'Aisha Patel', role: 'Energy Champion', seu: 'Production Line B', training: 'Trained',
+                        assessment: '2024-10' },
+                    { name: 'Carlos Mendez', role: 'Facilities Operator', seu: 'HVAC System', training: 'Trained',
+                        assessment: '2024-07' },
+                ],
+                // Improvement opportunities
+                opportunities: [
+                    { id: 'EPI-001', desc: 'Install VFDs on HVAC fans', seu: 'HVAC System', savings: 95000,
+                        investment: 42000, payback: 1.8, priority: 'High', status: 'Approved' },
+                    { id: 'EPI-002', desc: 'Compressed air leak repair program', seu: 'Compressed Air System',
+                        savings: 120000, investment: 18000, payback: 0.6, priority: 'High', status: 'In Progress' },
+                    { id: 'EPI-003', desc: 'LED retrofit for production floor', seu: 'Lighting', savings: 65000,
+                        investment: 55000, payback: 3.4, priority: 'Medium', status: 'Proposed' },
+                    { id: 'EPI-004', desc: 'Heat recovery from compressors', seu: 'Compressed Air System', savings: 62000,
+                        investment: 75000, payback: 4.8, priority: 'Low', status: 'Under Review' },
+                ],
+                forecastParams: { productionChange: 10, weatherChange: 5, efficiencyGain: 8 },
+            };
+
+            // Chart.js instances for proper destruction
+            const chartInstances = {};
+
+            function destroyChart(key) {
+                if (chartInstances[key]) { chartInstances[key].destroy();
+                    chartInstances[key] = null; }
+            }
+
+            // ==================== HELPERS ====================
+            function getTotalAnnualKWh() {
+                return state.energySources.reduce((sum, s) => sum + s.annualKWh, 0);
+            }
+
+            function getCategoryTotalKWh() {
+                return state.categories.reduce((sum, c) => sum + c.annualKWh, 0);
+            }
+
+            function recalcCategoriesFromSources() {
+                const total = getTotalAnnualKWh();
+                // Distribute proportionally to categories based on their current weights
+                const catTotal = getCategoryTotalKWh();
+                if (catTotal > 0 && total > 0) {
+                    state.categories.forEach(c => {
+                        const ratio = c.annualKWh / catTotal;
+                        c.annualKWh = Math.round(total * ratio);
+                    });
+                }
+                identifySEUs();
+            }
+
+            function identifySEUs() {
+                const total = getCategoryTotalKWh();
+                state.categories.forEach(c => {
+                    const pct = total > 0 ? (c.annualKWh / total) * 100 : 0;
+                    c.isSEU = pct > state.seuThreshold;
+                });
+                // Also mark variables for SEUs
+                const seuNames = state.categories.filter(c => c.isSEU).map(c => c.name);
+                state.variables = state.variables.filter(v => seuNames.includes(v.seu));
+                state.enpiData = state.enpiData.filter(e => seuNames.includes(e.seu));
+                // Ensure all SEUs have variable and enpi entries
+                seuNames.forEach(name => {
+                    if (!state.variables.find(v => v.seu === name)) {
+                        state.variables.push({ seu: name, variable: 'TBD', correlation: 'TBD',
+                        source: 'TBD' });
+                    }
+                    if (!state.enpiData.find(e => e.seu === name)) {
+                        state.enpiData.push({ seu: name, enpiName: 'kWh / unit', baseline: 100, current: 100,
+                            trend: 'stable' });
+                    }
+                });
+            }
+
+            // ==================== RENDER FUNCTIONS ====================
+            function renderEnergySources() {
+                const tbody = document.querySelector('#sourceTable tbody');
+                const total = getTotalAnnualKWh();
+                tbody.innerHTML = state.energySources.map((s, i) => {
+                    const pct = total > 0 ? ((s.annualKWh / total) * 100).toFixed(1) : '0.0';
+                    return `<tr>
+                <td><strong>${s.name}</strong></td>
+                <td>${s.type}</td>
+                <td>${s.unit}</td>
+                <td><input type="number" value="${s.annualNative}" style="width:100px;" onchange="updateSourceNative(${i}, this.value)"></td>
+                <td>${s.annualKWh.toLocaleString()}</td>
+                <td>${pct}%</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteSource(${i})">✕</button></td>
+              </tr>`;
+                }).join('');
+            }
+
+            window.updateSourceNative = function(index, value) {
+                const val = parseFloat(value) || 0;
+                state.energySources[index].annualNative = val;
+                state.energySources[index].annualKWh = Math.round(val * state.energySources[index].factor);
+                recalcCategoriesFromSources();
+                refreshAll();
+            };
+
+            window.deleteSource = function(index) {
+                if (state.energySources.length <= 1) return alert('At least one energy source is required.');
+                if (confirm('Delete this energy source?')) {
+                    state.energySources.splice(index, 1);
+                    recalcCategoriesFromSources();
+                    refreshAll();
+                }
+            };
+
+            window.addEnergySource = function() {
+                const name = prompt('Energy source name (e.g., "Biomass"):');
+                if (!name) return;
+                const unit = prompt('Unit (e.g., "kg", "kWh", "liters"):') || 'kWh';
+                const factor = parseFloat(prompt('Conversion factor to kWh (e.g., 1 kg biomass ≈ 4.5 kWh):') || '1');
+                const annualNative = parseFloat(prompt('Annual consumption in native units:') || '0');
+                state.energySources.push({
+                    name,
+                    type: 'Other',
+                    unit,
+                    annualNative,
+                    factor,
+                    annualKWh: Math.round(annualNative * factor)
+                });
+                recalcCategoriesFromSources();
+                refreshAll();
+            };
+
+            function renderMonthlyTable() {
+                const tbody = document.querySelector('#monthlyTable tbody');
+                tbody.innerHTML = state.monthlyData.map((m, i) => {
+                    const total = m.electricity + m.gas + m.diesel + m.solar;
+                    return `<tr>
+                <td><strong>${m.month}</strong></td>
+                <td contenteditable="true" onblur="updateMonthly(${i},'electricity',this.textContent)">${m.electricity.toLocaleString()}</td>
+                <td contenteditable="true" onblur="updateMonthly(${i},'gas',this.textContent)">${m.gas.toLocaleString()}</td>
+                <td contenteditable="true" onblur="updateMonthly(${i},'diesel',this.textContent)">${m.diesel.toLocaleString()}</td>
+                <td contenteditable="true" onblur="updateMonthly(${i},'solar',this.textContent)">${m.solar.toLocaleString()}</td>
+                <td><strong>${total.toLocaleString()}</strong></td>
+              </tr>`;
+                }).join('');
+            }
+
+            window.updateMonthly = function(index, field, value) {
+                const val = parseFloat(value.replace(/,/g, '')) || 0;
+                state.monthlyData[index][field] = val;
+                // Recalculate source totals from monthly data
+                const totals = { electricity: 0, gas: 0, diesel: 0, solar: 0 };
+                state.monthlyData.forEach(m => {
+                    totals.electricity += m.electricity;
+                    totals.gas += m.gas;
+                    totals.diesel += m.diesel;
+                    totals.solar += m.solar;
+                });
+                const sourceMap = {
+                    'Grid Electricity': 'electricity',
+                    'Natural Gas': 'gas',
+                    'Diesel': 'diesel',
+                    'Solar PV': 'solar'
+                };
+                state.energySources.forEach(s => {
+                    const key = sourceMap[s.name];
+                    if (key && totals[key] !== undefined) {
+                        s.annualKWh = totals[key];
+                        s.annualNative = Math.round(totals[key] / s.factor);
+                    }
+                });
+                recalcCategoriesFromSources();
+                refreshAll();
+            };
+
+            function renderSEUTable() {
+                const tbody = document.querySelector('#seuTable tbody');
+                const total = getCategoryTotalKWh();
+                tbody.innerHTML = state.categories.map(c => {
+                    const pct = total > 0 ? ((c.annualKWh / total) * 100).toFixed(1) : '0.0';
+                    const isSEU = parseFloat(pct) > state.seuThreshold;
+                    const rowClass = isSEU ? 'seu-highlight' : '';
+                    const badge = isSEU ? '<span class="badge badge-seu">⚠ SEU</span>' :
+                        '<span class="badge badge-non-seu">Non-SEU</span>';
+                    return `<tr class="${rowClass}">
+                <td><strong>${c.name}</strong></td>
+                <td>${c.annualKWh.toLocaleString()}</td>
+                <td><strong>${pct}%</strong></td>
+                <td>${badge}</td>
+              </tr>`;
+                }).join('');
+                document.getElementById('thresholdDisplay').textContent = state.seuThreshold;
+                document.getElementById('thresholdLabel').textContent = state.seuThreshold + '%';
+                document.getElementById('kpiSEUCount').textContent = state.categories.filter(c => c.isSEU).length;
+            }
+
+            window.updateSEUThreshold = function(value) {
+                state.seuThreshold = parseInt(value);
+                identifySEUs();
+                renderSEUTable();
+                renderSEUCharts();
+                updateKPIs();
+            };
+
+            function renderVariables() {
+                const tbody = document.querySelector('#variableTable tbody');
+                tbody.innerHTML = state.variables.map(v => `<tr>
+              <td><strong>${v.seu}</strong></td>
+              <td>${v.variable}</td>
+              <td>${v.correlation}</td>
+              <td>${v.source}</td>
+            </tr>`).join('');
+            }
+
+            function renderEnPITable() {
+                const tbody = document.querySelector('#enpiTable tbody');
+                tbody.innerHTML = state.enpiData.map(e => {
+                    const trendIcon = e.trend === 'improving' ? '🟢 ↓' : e.trend === 'worsening' ? '🔴 ↑' :
+                        '🟡 →';
+                    return `<tr>
+                <td><strong>${e.seu}</strong></td>
+                <td>${e.enpiName}</td>
+                <td>${e.baseline}</td>
+                <td>${e.current}</td>
+                <td>${trendIcon} ${e.trend}</td>
+              </tr>`;
+                }).join('');
+            }
+
+            function renderCompetency() {
+                const tbody = document.querySelector('#competencyTable tbody');
+                tbody.innerHTML = state.personnel.map((p, i) => {
+                    const trainingBadge = p.training === 'Trained' ?
+                        '<span class="badge badge-trained">✅ Trained</span>' :
+                        '<span class="badge badge-pending">⚠ ' + p.training + '</span>';
+                    return `<tr>
+                <td><strong>${p.name}</strong></td>
+                <td>${p.role}</td>
+                <td>${p.seu}</td>
+                <td>${trainingBadge}</td>
+                <td>${p.assessment}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deletePersonnel(${i})">✕</button></td>
+              </tr>`;
+                }).join('');
+            }
+
+            window.addPersonnel = function() {
+                const name = prompt('Personnel name:') || 'New Person';
+                const role = prompt('Role:') || 'Operator';
+                const seu = prompt('Linked SEU:') || state.categories.find(c => c.isSEU)?.name || 'HVAC System';
+                const training = prompt('Training status (Trained / Pending Renewal / Needs Training):') ||
+                'Needs Training';
+                state.personnel.push({ name, role, seu, training, assessment: new Date().toISOString().slice(0, 7) });
+                renderCompetency();
+            };
+
+            window.deletePersonnel = function(index) {
+                if (confirm('Remove this personnel record?')) {
+                    state.personnel.splice(index, 1);
+                    renderCompetency();
+                }
+            };
+
+            function renderOpportunities() {
+                const tbody = document.querySelector('#opportunityTable tbody');
+                tbody.innerHTML = state.opportunities.map((o, i) => {
+                    const priBadge = 'badge-' + o.priority.toLowerCase();
+                    return `<tr>
+                <td>${o.id}</td>
+                <td>${o.desc}</td>
+                <td>${o.seu}</td>
+                <td>${o.savings.toLocaleString()}</td>
+                <td>$${o.investment.toLocaleString()}</td>
+                <td>${o.payback}</td>
+                <td><span class="badge ${priBadge}">${o.priority}</span></td>
+                <td>${o.status}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteOpportunity(${i})">✕</button></td>
+              </tr>`;
+                }).join('');
+                // Update savings KPI
+                const totalSavings = state.opportunities.reduce((sum, o) => sum + o.savings, 0);
+                document.getElementById('kpiSavings').textContent = totalSavings.toLocaleString();
+            }
+
+            window.addOpportunity = function() {
+                const desc = prompt('Opportunity description:') || 'New opportunity';
+                const seu = prompt('Associated SEU:') || state.categories.find(c => c.isSEU)?.name || 'HVAC System';
+                const savings = parseInt(prompt('Estimated annual savings (kWh):') || '50000');
+                const investment = parseInt(prompt('Investment required ($):') || '25000');
+                const payback = investment > 0 ? (investment / (savings * 0.12)).toFixed(2) : 'N/A'; // assuming $0.12/kWh
+                const priority = savings > 80000 ? 'High' : savings > 40000 ? 'Medium' : 'Low';
+                const id = 'EPI-' + String(state.opportunities.length + 1).padStart(3, '0');
+                state.opportunities.push({ id, desc, seu, savings, investment, payback: parseFloat(payback) || 0,
+                    priority, status: 'Proposed' });
+                renderOpportunities();
+                updateKPIs();
+            };
+
+            window.deleteOpportunity = function(index) {
+                if (confirm('Delete this opportunity?')) {
+                    state.opportunities.splice(index, 1);
+                    renderOpportunities();
+                    updateKPIs();
+                }
+            };
+
+            function updateKPIs() {
+                document.getElementById('kpiTotal').textContent = getTotalAnnualKWh().toLocaleString();
+                document.getElementById('kpiSEUCount').textContent = state.categories.filter(c => c.isSEU).length;
+                const enpiVals = state.enpiData.map(e => e.current);
+                const avgEnPI = enpiVals.length > 0 ? (enpiVals.reduce((a, b) => a + b, 0) / enpiVals.length).toFixed(
+                    1) : '—';
+                document.getElementById('kpiEnPI').textContent = avgEnPI;
+                const totalSavings = state.opportunities.reduce((sum, o) => sum + o.savings, 0);
+                document.getElementById('kpiSavings').textContent = totalSavings.toLocaleString();
+            }
+
+            // ==================== CHARTS ====================
+            function renderHistoricalChart() {
+                destroyChart('historical');
+                const ctx = document.getElementById('chartHistorical')?.getContext('2d');
+                if (!ctx) return;
+                const months = state.monthlyData.map(m => m.month);
+                chartInstances['historical'] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: months,
+                        datasets: [
+                            { label: 'Grid Electricity', data: state.monthlyData.map(m => m.electricity),
+                                borderColor: '#1a5f8a', backgroundColor: 'rgba(26,95,138,0.08)', fill: true,
+                                tension: 0.35, pointRadius: 3, borderWidth: 2.5 },
+                            { label: 'Natural Gas', data: state.monthlyData.map(m => m.gas),
+                                borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.06)', fill: true,
+                                tension: 0.35, pointRadius: 3, borderWidth: 2.5 },
+                            { label: 'Diesel', data: state.monthlyData.map(m => m.diesel), borderColor: '#95a5a6',
+                                backgroundColor: 'rgba(149,165,166,0.05)', fill: true, tension: 0.35, pointRadius: 3,
+                                borderWidth: 2, borderDash: [6, 3] },
+                            { label: 'Solar PV', data: state.monthlyData.map(m => m.solar), borderColor: '#27ae60',
+                                backgroundColor: 'rgba(39,174,96,0.08)', fill: true, tension: 0.35, pointRadius: 3,
+                                borderWidth: 2.5 },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 14, padding: 16, font: { size: 11 } } },
+                            tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y
+                                    .toLocaleString() + ' kWh' } },
+                        },
+                        scales: {
+                            y: { title: { display: true, text: 'kWh equivalent', font: { size: 11 } },
+                                ticks: { callback: v => (v / 1000).toFixed(0) + 'k' }, grid: { color: '#f0f0f0' } },
+                            x: { grid: { display: false } },
+                        },
+                    },
+                });
+            }
+
+            function renderSEUCharts() {
+                destroyChart('categoryBreakdown');
+                const ctx1 = document.getElementById('chartCategoryBreakdown')?.getContext('2d');
+                if (!ctx1) return;
+                const total = getCategoryTotalKWh();
+                const colors = state.categories.map(c => {
+                    const pct = total > 0 ? (c.annualKWh / total) * 100 : 0;
+                    return pct > state.seuThreshold ? '#c0392b' : pct > state.seuThreshold * 0.7 ?
+                        '#f39c12' : '#5d9ca4';
+                });
+                chartInstances['categoryBreakdown'] = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: state.categories.map(c => c.name),
+                        datasets: [{
+                            label: 'Annual kWh',
+                            data: state.categories.map(c => c.annualKWh),
+                            backgroundColor: colors,
+                            borderColor: colors.map(c => c.replace(')', ',0.85)').replace('rgb',
+                                'rgba')),
+                            borderWidth: 1,
+                            borderRadius: 6,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false },
+                            annotation: false,
+                            tooltip: { callbacks: { label: ctx => ctx.parsed.y.toLocaleString() +
+                                        ' kWh (' + (total > 0 ? (ctx.parsed.y / total * 100)
+                                            .toFixed(1) : '0') + '%)' } },
+                        },
+                        scales: {
+                            y: { title: { display: true, text: 'kWh', font: { size: 11 } },
+                            ticks: { callback: v => (v / 1000).toFixed(0) + 'k' } },
+                            x: { ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 20 } },
+                        },
+                    },
+                });
+            }
+
+            function renderEnPITrendChart() {
+                destroyChart('enpiTrend');
+                const ctx = document.getElementById('chartEnPITrend')?.getContext('2d');
+                if (!ctx) return;
+                const months = state.monthlyData.map(m => m.month);
+                // Simulate EnPI trend data (kWh per unit) based on monthly totals and a simulated production volume
+                const prodVolumes = [320, 310, 330, 350, 360, 370, 380, 390, 370, 340, 330, 315];
+                const enpiValues = state.monthlyData.map((m, i) => {
+                    const total = m.electricity + m.gas + m.diesel + m.solar;
+                    return parseFloat((total / prodVolumes[i]).toFixed(1));
+                });
+                chartInstances['enpiTrend'] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: months,
+                        datasets: [
+                            { label: 'EnPI (kWh/unit)', data: enpiValues, borderColor: '#0d7d6e',
+                                backgroundColor: 'rgba(13,125,110,0.1)', fill: true, tension: 0.4, pointRadius: 4,
+                                borderWidth: 3, pointBackgroundColor: '#0d7d6e' },
+                            { label: 'Baseline (12.8)', data: Array(12).fill(12.8), borderColor: '#e67e22',
+                                borderDash: [8, 4], borderWidth: 2, pointRadius: 0, fill: false },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 11 } } } },
+                        scales: {
+                            y: { title: { display: true, text: 'kWh / unit', font: { size: 11 } },
+                            grid: { color: '#f0f0f0' } },
+                            x: { grid: { display: false } },
+                        },
+                    },
+                });
+            }
+
+            function renderForecastChart() {
+                destroyChart('forecast');
+                const ctx = document.getElementById('chartForecast')?.getContext('2d');
+                if (!ctx) return;
+                const months = state.monthlyData.map(m => m.month);
+                const historicalTotals = state.monthlyData.map(m => m.electricity + m.gas + m.diesel + m.solar);
+                const avgRecent = historicalTotals.slice(-6).reduce((a, b) => a + b, 0) / 6;
+                const prodFactor = 1 + state.forecastParams.productionChange / 100;
+                const weatherFactor = 1 + state.forecastParams.weatherChange / 100;
+                const effFactor = 1 - state.forecastParams.efficiencyGain / 100;
+                const forecastBase = avgRecent * prodFactor * weatherFactor * effFactor;
+                const futureMonths = ['Jan\'(est)', 'Feb\'(est)', 'Mar\'(est)', 'Apr\'(est)', 'May\'(est)',
+                'Jun\'(est)'];
+                const forecastValues = futureMonths.map(() => Math.round(forecastBase * (0.92 + Math.random() * 0.16)));
+                const allLabels = [...months, ...futureMonths];
+                const historicalExtended = [...historicalTotals, ...Array(futureMonths.length).fill(null)];
+                const forecastExtended = [...Array(months.length).fill(null), ...forecastValues];
+
+                chartInstances['forecast'] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: allLabels,
+                        datasets: [
+                            { label: 'Historical Actual', data: historicalExtended, borderColor: '#1a5f8a',
+                                backgroundColor: 'rgba(26,95,138,0.06)', fill: true, tension: 0.35, pointRadius: 3,
+                                borderWidth: 2.5, spanGaps: false },
+                            { label: 'Forecast (with params)', data: forecastExtended, borderColor: '#e67e22',
+                                borderDash: [6, 3], borderWidth: 3, pointRadius: 5,
+                                pointBackgroundColor: '#e67e22', fill: false, spanGaps: false },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 11 } } } },
+                        scales: {
+                            y: { title: { display: true, text: 'kWh equivalent / month', font: { size: 11 } },
+                                ticks: { callback: v => (v / 1000).toFixed(0) + 'k' }, grid: { color: '#f0f0f0' } },
+                            x: { grid: { display: false } },
+                        },
+                    },
+                });
+                const projectedAnnual = Math.round(forecastBase * 12);
+                document.getElementById('forecastResult').textContent = projectedAnnual.toLocaleString();
+            }
+
+            window.updateForecast = function() {
+                state.forecastParams.productionChange = parseInt(document.getElementById('forecastProduction').value);
+                state.forecastParams.weatherChange = parseInt(document.getElementById('forecastWeather').value);
+                state.forecastParams.efficiencyGain = parseInt(document.getElementById('forecastEfficiency').value);
+                document.getElementById('forecastProdVal').textContent =
+                    (state.forecastParams.productionChange >= 0 ? '+' : '') + state.forecastParams.productionChange +
+                    '%';
+                document.getElementById('forecastWeatherVal').textContent =
+                    (state.forecastParams.weatherChange >= 0 ? '+' : '') + state.forecastParams.weatherChange + '%';
+                document.getElementById('forecastEffVal').textContent = state.forecastParams.efficiencyGain + '%';
+                renderForecastChart();
+            };
+
+            // ==================== TAB SWITCHING ====================
+            function switchTab(tabId) {
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                const panel = document.getElementById(tabId);
+                const btn = document.querySelector(`[data-tab="${tabId}"]`);
+                if (panel) panel.classList.add('active');
+                if (btn) btn.classList.add('active');
+                // Render charts for the active tab
+                setTimeout(() => {
+                    if (tabId === 'phase1') renderHistoricalChart();
+                    if (tabId === 'phase2') renderSEUCharts();
+                    if (tabId === 'phase3') renderEnPITrendChart();
+                    if (tabId === 'phase4') renderForecastChart();
+                }, 150);
+            }
+
+            document.getElementById('tabNav').addEventListener('click', function(e) {
+                const btn = e.target.closest('.tab-btn');
+                if (!btn) return;
+                const tabId = btn.getAttribute('data-tab');
+                if (tabId) switchTab(tabId);
+            });
+
+            // ==================== REFRESH ALL ====================
+            function refreshAll() {
+                identifySEUs();
+                renderEnergySources();
+                renderMonthlyTable();
+                renderSEUTable();
+                renderVariables();
+                renderEnPITable();
+                renderCompetency();
+                renderOpportunities();
+                updateKPIs();
+                // Refresh visible chart
+                const activePanel = document.querySelector('.tab-panel.active');
+                if (activePanel) {
+                    const id = activePanel.id;
+                    if (id === 'phase1') renderHistoricalChart();
+                    if (id === 'phase2') renderSEUCharts();
+                    if (id === 'phase3') renderEnPITrendChart();
+                    if (id === 'phase4') renderForecastChart();
+                }
+            }
+
+            // ==================== INITIALIZATION ====================
+            function init() {
+                identifySEUs();
+                renderEnergySources();
+                renderMonthlyTable();
+                renderSEUTable();
+                renderVariables();
+                renderEnPITable();
+                renderCompetency();
+                renderOpportunities();
+                updateKPIs();
+                renderHistoricalChart();
+                // Set slider positions for forecast
+                document.getElementById('forecastProduction').value = state.forecastParams.productionChange;
+                document.getElementById('forecastWeather').value = state.forecastParams.weatherChange;
+                document.getElementById('forecastEfficiency').value = state.forecastParams.efficiencyGain;
+                document.getElementById('forecastProdVal').textContent =
+                    (state.forecastParams.productionChange >= 0 ? '+' : '') + state.forecastParams.productionChange +
+                    '%';
+                document.getElementById('forecastWeatherVal').textContent =
+                    (state.forecastParams.weatherChange >= 0 ? '+' : '') + state.forecastParams.weatherChange + '%';
+                document.getElementById('forecastEffVal').textContent = state.forecastParams.efficiencyGain + '%';
+                document.getElementById('seuThresholdSlider').value = state.seuThreshold;
+                document.getElementById('thresholdDisplay').textContent = state.seuThreshold;
+                document.getElementById('thresholdLabel').textContent = state.seuThreshold + '%';
+            }
+
+            init();
+
+            // Expose functions to global scope for inline handlers
+            window.refreshAll = refreshAll;
+            window.deleteOpportunity = window.deleteOpportunity;
+            window.addOpportunity = window.addOpportunity;
+            window.deletePersonnel = window.deletePersonnel;
+            window.addPersonnel = window.addPersonnel;
+            window.updateSEUThreshold = window.updateSEUThreshold;
+            window.updateForecast = window.updateForecast;
+            window.addEnergySource = window.addEnergySource;
+            window.deleteSource = window.deleteSource;
+            window.updateSourceNative = window.updateSourceNative;
+            window.updateMonthly = window.updateMonthly;
+
+            console.log('✅ ISO 50001:2018 Energy Review Dashboard initialized.');
+            console.log('   Phase 1: Data Foundation (Clause 6.3.a)');
+            console.log('   Phase 2: SEU Identification (Clause 6.3.b)');
+            console.log('   Phase 3: Detailed SEU Analysis (Clause 6.3.c)');
+            console.log('   Phase 4: Improvement & Forecasting (Clause 6.3.d & 6.3.e)');
+            console.log('   💡 Click cells to edit | Adjust sliders | Add entries via buttons');
+        })();
+    </script>
+</body>
+</html>
